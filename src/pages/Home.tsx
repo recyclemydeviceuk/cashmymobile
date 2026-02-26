@@ -70,7 +70,7 @@ export default function Home() {
             {/* Soft background blob behind phone */}
             <div className="absolute inset-x-4 bottom-0 h-3/4 bg-gradient-to-t from-red-100 to-red-50 rounded-3xl" />
             <img
-              src="https://res.cloudinary.com/dn2sab6qc/image/upload/v1771700755/Hero_Image_caeavu.png"
+              src="https://res.cloudinary.com/dn2sab6qc/image/upload/v1772096282/ChatGPT_Image_Feb_26_2026_12_29_14_AM_ngndnp.png"
               alt="Sell your phone for cash"
               className="relative z-10 w-full h-[260px] object-contain drop-shadow-2xl"
             />
