@@ -66,13 +66,13 @@ export default function Home() {
           </div>
 
           {/* Phone image card — clean, no absolute overlays */}
-          <div className="relative mx-auto w-full max-w-[320px]">
+          <div className="relative mx-auto w-full max-w-[420px]">
             {/* Soft background blob behind phone */}
             <div className="absolute inset-x-4 bottom-0 h-3/4 bg-gradient-to-t from-red-100 to-red-50 rounded-3xl" />
             <img
-              src="https://res.cloudinary.com/dn2sab6qc/image/upload/v1771700003/Cashmymobile_logo_y7ndez.png"
+              src="https://res.cloudinary.com/dn2sab6qc/image/upload/v1772096282/ChatGPT_Image_Feb_26_2026_12_29_14_AM_ngndnp.png"
               alt="Sell your phone for cash"
-              className="relative z-10 w-full h-[260px] object-contain drop-shadow-2xl"
+              className="relative z-10 w-full h-[400px] object-contain drop-shadow-2xl"
             />
           </div>
 
@@ -103,7 +103,7 @@ export default function Home() {
         </div>
 
         {/* ── DESKTOP LAYOUT (md+) ── */}
-        <div className="hidden md:grid relative max-w-7xl mx-auto px-6 md:px-12 pt-16 pb-0 grid-cols-2 gap-12 items-end">
+        <div className="hidden md:grid relative max-w-7xl mx-auto px-6 md:px-12 pt-16 pb-0 grid-cols-2 gap-12 items-center">
           {/* Left */}
           <div className="space-y-8 pb-16">
             <div className="inline-flex items-center gap-2 bg-red-50 border border-red-100 text-red-700 text-xs font-semibold px-4 py-2 rounded-full">
@@ -145,13 +145,13 @@ export default function Home() {
           </div>
 
           {/* Right — phone image */}
-          <div className="relative flex justify-center">
-            <div className="relative z-10">
+          <div className="relative flex justify-center items-end">
+            <div className="relative z-10 w-full max-w-[500px]">
               <div className="absolute inset-0 bg-gradient-to-t from-red-100/60 to-transparent rounded-[2.5rem] z-0" />
               <img
                 src="https://res.cloudinary.com/dn2sab6qc/image/upload/v1772096282/ChatGPT_Image_Feb_26_2026_12_29_14_AM_ngndnp.png"
                 alt="Sell your phone for cash"
-                className="relative z-10 w-72 md:w-80 h-[480px] object-contain drop-shadow-2xl"
+                className="relative z-10 w-full h-[550px] object-cover object-bottom drop-shadow-2xl"
               />
             </div>
           </div>
