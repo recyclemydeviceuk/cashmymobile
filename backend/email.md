@@ -1,1 +1,0 @@
-don't use emojis in email template
