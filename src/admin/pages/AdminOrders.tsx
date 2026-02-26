@@ -3,11 +3,11 @@ import { Link, useSearchParams } from 'react-router-dom';
 import {
   Search, Filter, Download, Eye, Trash2,
   Package, ChevronDown, X, RefreshCw, Loader2,
+  ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import AdminLayout from '../AdminLayout';
 import { useAdmin } from '../AdminContext';
 import type { Order, UtilityItem } from '../types';
-import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 
 function StatusBadge({ value, statuses, fallbackColor }: { value: string; statuses: UtilityItem[]; fallbackColor: string }) {
   const match = statuses.find(s => (s.value || s.name) === value);
@@ -19,7 +19,7 @@ function StatusBadge({ value, statuses, fallbackColor }: { value: string; status
 }
 
 export default function AdminOrders() {
-  const { orders, deleteOrder, updateOrder, fetchOrders, loadingOrders, loadMoreOrders, ordersHasMore, orderStatuses, paymentStatuses } = useAdmin();
+  const { orders, deleteOrder, updateOrder, fetchOrders, loadingOrders, ordersHasMore, orderStatuses, paymentStatuses } = useAdmin();
   const [searchParams] = useSearchParams();
 
   const [search, setSearch] = useState('');
@@ -31,6 +31,7 @@ export default function AdminOrders() {
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [statusUpdateOrder, setStatusUpdateOrder] = useState<Order | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const filtered = useMemo(() => {
     return orders.filter(o => {
@@ -97,12 +98,11 @@ export default function AdminOrders() {
     setShowBulkActions(false);
   };
 
-  const sentinelRef = useInfiniteScroll({
-    onLoadMore: loadMoreOrders,
-    hasMore: ordersHasMore,
-    loading: loadingOrders,
-    threshold: 200,
-  });
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    fetchOrders({ limit: 10, page: newPage });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <AdminLayout title="Orders" subtitle="Manage all incoming orders from website and API">
@@ -306,19 +306,34 @@ export default function AdminOrders() {
             </table>
           </div>
         )}
-        
-        {/* Infinite Scroll Sentinel */}
-        {!loadingOrders && filtered.length > 0 && (
-          <div ref={sentinelRef} className="h-20 flex items-center justify-center border-t border-gray-200">
-            {ordersHasMore && (
-              <div className="flex items-center gap-2 text-gray-500">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span className="text-sm">Loading more...</span>
-              </div>
-            )}
-          </div>
-        )}
       </div>
+
+      {/* Pagination Controls */}
+      {!loadingOrders && filtered.length > 0 && (
+        <div className="mt-4 flex items-center justify-between">
+          <p className="text-sm text-gray-600">
+            Page {currentPage}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="flex items-center gap-1 px-3 py-2 text-sm border border-gray-300 rounded-xl bg-white hover:bg-gray-50 text-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Previous
+            </button>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={!ordersHasMore}
+              className="flex items-center gap-1 px-3 py-2 text-sm border border-gray-300 rounded-xl bg-white hover:bg-gray-50 text-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Confirm Delete Dialog ───────────────────────────────────────── */}
       {confirmDelete && (

@@ -75,7 +75,7 @@ export const mockDevices: Device[] = [
 
 export const mockOrders: Order[] = [
   {
-    id: 'o1', orderNumber: 'A3F9K2', source: 'WEBSITE', status: 'RECEIVED',
+    id: 'o1', orderNumber: 'CMM1001', source: 'WEBSITE', status: 'RECEIVED',
     createdAt: '2025-02-20T10:30:00Z', updatedAt: '2025-02-20T10:30:00Z',
     customerName: 'James Wilson', customerPhone: '07700900001', customerEmail: 'james@example.com',
     customerAddress: '12 Baker Street, London, W1U 3BT',
@@ -86,7 +86,7 @@ export const mockOrders: Order[] = [
     transactionId: 'TXN-001',
   },
   {
-    id: 'o2', orderNumber: 'B7X1M4', source: 'API', status: 'PACK_SENT',
+    id: 'o2', orderNumber: 'CMM1002', source: 'API', status: 'PACK_SENT',
     createdAt: '2025-02-19T14:15:00Z', updatedAt: '2025-02-20T08:00:00Z',
     customerName: 'Sarah Brown', customerPhone: '07700900002', customerEmail: 'sarah@example.com',
     customerAddress: '45 High Street, Manchester, M1 1AD',
@@ -97,7 +97,7 @@ export const mockOrders: Order[] = [
     transactionId: 'TXN-002',
   },
   {
-    id: 'o3', orderNumber: 'C2R8N6', source: 'API', status: 'INSPECTION_PASSED',
+    id: 'o3', orderNumber: 'CMM1003', source: 'API', status: 'INSPECTION_PASSED',
     createdAt: '2025-02-18T09:00:00Z', updatedAt: '2025-02-21T11:00:00Z',
     customerName: 'Mike Chen', customerPhone: '07700900003', customerEmail: 'mike@example.com',
     customerAddress: '7 Oak Avenue, Birmingham, B1 1BB',
@@ -108,7 +108,7 @@ export const mockOrders: Order[] = [
     transactionId: 'TXN-003',
   },
   {
-    id: 'o4', orderNumber: 'D5T3P9', source: 'WEBSITE', status: 'PAYOUT_READY',
+    id: 'o4', orderNumber: 'CMM1004', source: 'WEBSITE', status: 'PAYOUT_READY',
     createdAt: '2025-02-17T16:45:00Z', updatedAt: '2025-02-22T09:30:00Z',
     customerName: 'Emma Davis', customerPhone: '07700900004', customerEmail: 'emma@example.com',
     customerAddress: '23 Rose Lane, Leeds, LS1 1AB',
@@ -119,7 +119,7 @@ export const mockOrders: Order[] = [
     transactionId: 'TXN-004',
   },
   {
-    id: 'o5', orderNumber: 'E4W7Q1', source: 'API', status: 'PRICE_REVISED',
+    id: 'o5', orderNumber: 'CMM1005', source: 'API', status: 'PRICE_REVISED',
     createdAt: '2025-02-16T11:20:00Z', updatedAt: '2025-02-21T15:00:00Z',
     customerName: 'Tom Parker', customerPhone: '07700900005', customerEmail: 'tom@example.com',
     customerAddress: '89 Pine Road, Bristol, BS1 1AA',
@@ -131,7 +131,7 @@ export const mockOrders: Order[] = [
     priceRevisionReason: 'Screen has hairline crack top right corner',
   },
   {
-    id: 'o6', orderNumber: 'F8L2V5', source: 'WEBSITE', status: 'PAID',
+    id: 'o6', orderNumber: 'CMM1006', source: 'WEBSITE', status: 'PAID',
     createdAt: '2025-02-10T13:00:00Z', updatedAt: '2025-02-15T10:00:00Z',
     customerName: 'Lucy Johnson', customerPhone: '07700900006', customerEmail: 'lucy@example.com',
     customerAddress: '56 Elm Street, Edinburgh, EH1 1AB',
@@ -142,7 +142,7 @@ export const mockOrders: Order[] = [
     transactionId: 'TXN-006',
   },
   {
-    id: 'o7', orderNumber: 'G6H0S3', source: 'API', status: 'CANCELLED',
+    id: 'o7', orderNumber: 'CMM1007', source: 'API', status: 'CANCELLED',
     createdAt: '2025-02-12T10:00:00Z', updatedAt: '2025-02-13T08:00:00Z',
     customerName: 'David Smith', customerPhone: '07700900007', customerEmail: 'david@example.com',
     customerAddress: '31 Oak Road, Cardiff, CF1 1AD',
@@ -165,10 +165,10 @@ export const mockPricingEntries: PricingEntry[] = [
 ];
 
 export const mockApiLogs: ApiRequestLog[] = [
-  { id: 'l1', timestamp: '2025-02-22T14:35:22Z', sourceIp: '185.23.10.45', endpoint: '/decisiontech', method: 'POST', statusCode: 200, success: true, orderNumber: 'B7X1M4', payload: '{"device_name":"iPhone 15 Pro Max","network":"O2","device_grade":"BROKEN","offered_price":280}', responseTime: 142 },
-  { id: 'l2', timestamp: '2025-02-22T11:12:08Z', sourceIp: '185.23.10.45', endpoint: '/decisiontech', method: 'POST', statusCode: 200, success: true, orderNumber: 'C2R8N6', payload: '{"device_name":"Samsung Galaxy S24 Ultra","network":"Unlocked","device_grade":"NEW","offered_price":525}', responseTime: 98 },
+  { id: 'l1', timestamp: '2025-02-22T14:35:22Z', sourceIp: '185.23.10.45', endpoint: '/decisiontech', method: 'POST', statusCode: 200, success: true, orderNumber: 'CMM1002', payload: '{"device_name":"iPhone 15 Pro Max","network":"O2","device_grade":"BROKEN","offered_price":280}', responseTime: 142 },
+  { id: 'l2', timestamp: '2025-02-22T11:12:08Z', sourceIp: '185.23.10.45', endpoint: '/decisiontech', method: 'POST', statusCode: 200, success: true, orderNumber: 'CMM1003', payload: '{"device_name":"Samsung Galaxy S24 Ultra","network":"Unlocked","device_grade":"NEW","offered_price":525}', responseTime: 98 },
   { id: 'l3', timestamp: '2025-02-21T16:55:00Z', sourceIp: '185.23.10.45', endpoint: '/decisiontech', method: 'POST', statusCode: 422, success: false, payload: '{"device_name":"","network":"EE","device_grade":"GOOD","offered_price":300}', error: 'device_name is required', responseTime: 22 },
-  { id: 'l4', timestamp: '2025-02-20T09:15:44Z', sourceIp: '185.23.10.45', endpoint: '/decisiontech', method: 'POST', statusCode: 200, success: true, orderNumber: 'E4W7Q1', payload: '{"device_name":"iPhone 16","network":"EE","device_grade":"GOOD","offered_price":425}', responseTime: 115 },
+  { id: 'l4', timestamp: '2025-02-20T09:15:44Z', sourceIp: '185.23.10.45', endpoint: '/decisiontech', method: 'POST', statusCode: 200, success: true, orderNumber: 'CMM1005', payload: '{"device_name":"iPhone 16","network":"EE","device_grade":"GOOD","offered_price":425}', responseTime: 115 },
   { id: 'l5', timestamp: '2025-02-19T14:20:11Z', sourceIp: '203.0.113.22', endpoint: '/decisiontech', method: 'POST', statusCode: 401, success: false, payload: '{}', error: 'IP not whitelisted', responseTime: 8 },
 ];
 
@@ -209,12 +209,9 @@ export const defaultCategories: UtilityItem[] = [
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
 export function generateOrderNumber(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < 6; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
+  // Generate CMM format order numbers (CMM1001, CMM1002, etc.)
+  const random = Math.floor(1001 + Math.random() * 8999);
+  return `CMM${random}`;
 }
 
 export function generateId(): string {
@@ -1085,7 +1082,7 @@ export function useAdminStore() {
   }, [fetchApiLogs, fetchOrders]);
 
   return {
-    orders, addOrder, updateOrder, deleteOrder, updateOrderStatus, fetchOrders, loadingOrders, loadMoreOrders, ordersHasMore,
+    orders, addOrder, updateOrder, deleteOrder, updateOrderStatus, fetchOrders, loadingOrders, loadMoreOrders, ordersHasMore, ordersPage,
     devices, addDevice, updateDevice, deleteDevice, loadingDevices, fetchDevices, loadMoreDevices, devicesHasMore,
     pricingEntries, addPricingEntry, updatePricingEntry, deletePricingEntry, bulkUpdatePricing, fetchPricing, loadingPricing, loadMorePricing, pricingHasMore,
     apiLogs, processApiOrder, fetchApiLogs, loadingApiLogs,

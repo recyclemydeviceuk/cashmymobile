@@ -301,7 +301,7 @@ function Step1({ onSelect, initialBrand }: { onSelect: (p: SelectedPhone) => voi
                             className="h-full w-auto object-contain group-hover:scale-105 transition-transform duration-200"
                           />
                         </div>
-                        <div className="text-xs sm:text-sm font-semibold text-gray-800 group-hover:text-red-700 mb-1 leading-tight">{device.fullName}</div>
+                        <div className="text-xs sm:text-sm font-semibold text-gray-800 group-hover:text-red-700 mb-1 leading-tight">{device.name}</div>
                         <div className="text-xs sm:text-sm font-bold text-red-600">{maxPrice ? `Up to £${maxPrice}` : 'Get Quote'}</div>
                       </button>
                     );
@@ -335,7 +335,7 @@ function Step1({ onSelect, initialBrand }: { onSelect: (p: SelectedPhone) => voi
                             className="h-full w-auto object-contain group-hover:scale-105 transition-transform duration-200"
                           />
                         </div>
-                        <div className="text-xs sm:text-sm font-semibold text-gray-800 group-hover:text-red-700 mb-1 leading-tight">{device.fullName}</div>
+                        <div className="text-xs sm:text-sm font-semibold text-gray-800 group-hover:text-red-700 mb-1 leading-tight">{device.name}</div>
                         <div className="text-xs sm:text-sm font-bold text-red-600">{maxPrice ? `Up to £${maxPrice}` : 'Get Quote'}</div>
                       </button>
                     );

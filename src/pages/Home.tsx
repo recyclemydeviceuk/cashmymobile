@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import {
   Smartphone,
   ShieldCheck,
@@ -20,8 +21,63 @@ import {
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { deviceApi, Device } from '../api/devices';
+import { pricingApi, Pricing } from '../api/pricing';
+
+interface DeviceWithPrice extends Device {
+  maxPrice: number;
+}
 
 export default function Home() {
+  const [appleDevices, setAppleDevices] = useState<DeviceWithPrice[]>([]);
+  const [samsungDevices, setSamsungDevices] = useState<DeviceWithPrice[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDevices();
+  }, []);
+
+  const fetchDevices = async () => {
+    try {
+      setLoading(true);
+      const [appleRes, samsungRes, pricingRes] = await Promise.all([
+        deviceApi.getAllDevices({ brand: 'Apple', isActive: true, limit: 12 }),
+        deviceApi.getAllDevices({ brand: 'Samsung', isActive: true, limit: 12 }),
+        pricingApi.getAllPricing(),
+      ]);
+
+      const pricingData = pricingRes.success && pricingRes.data ? pricingRes.data.pricing : [];
+
+      const attachPricing = (devices: Device[]): DeviceWithPrice[] => {
+        return devices.map(device => {
+          const devicePricing = pricingData.filter((p: Pricing) => p.deviceId === device._id);
+          const maxPrice = devicePricing.length > 0
+            ? Math.max(...devicePricing.map((p: Pricing) => Math.max(p.gradeNew, p.gradeGood, p.gradeBroken)))
+            : 0;
+          return { ...device, maxPrice };
+        });
+      };
+
+      if (appleRes.success && appleRes.data?.devices) {
+        const sortedApple = attachPricing(appleRes.data.devices)
+          .sort((a, b) => b.maxPrice - a.maxPrice)
+          .slice(0, 12);
+        setAppleDevices(sortedApple);
+      }
+
+      if (samsungRes.success && samsungRes.data?.devices) {
+        const sortedSamsung = attachPricing(samsungRes.data.devices)
+          .sort((a, b) => b.maxPrice - a.maxPrice)
+          .slice(0, 12);
+        setSamsungDevices(sortedSamsung);
+      }
+    } catch (error) {
+      console.error('Error fetching devices:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans text-gray-900">
       <Header />
@@ -315,39 +371,51 @@ export default function Home() {
                 View All <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-              {[
-                { name: 'iPhone 16 Pro Max', price: '£850', image: 'https://storage.googleapis.com/atomjuice-product-images/apple/iphone-16-pro-max/default.png' },
-                { name: 'iPhone 16 Pro', price: '£750', image: 'https://storage.googleapis.com/atomjuice-product-images/apple/iphone-16-pro/default.png' },
-                { name: 'iPhone 16 Plus', price: '£650', image: 'https://storage.googleapis.com/atomjuice-product-images/apple/iphone-16-plus/default.png' },
-                { name: 'iPhone 16', price: '£550', image: 'https://storage.googleapis.com/atomjuice-product-images/apple/iphone-16/default.png' },
-                { name: 'iPhone 15 Pro Max', price: '£720', image: 'https://storage.googleapis.com/atomjuice-product-images/apple/iphone-15-pro-max/default.png' },
-                { name: 'iPhone 15 Pro', price: '£620', image: 'https://storage.googleapis.com/atomjuice-product-images/apple/iphone-15-pro/default.png' },
-              ].map((device) => (
-                <Link to={`/sell?device=${encodeURIComponent(device.name)}`} key={device.name}>
-                  <div className="group bg-white border-2 border-gray-100 rounded-2xl p-4 hover:border-red-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-                    <div className="bg-gray-50 rounded-xl p-4 mb-3 flex items-center justify-center h-32 sm:h-40">
-                      <img 
-                        src={device.image} 
-                        alt={device.name}
-                        className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
-                        onError={(e) => {
-                          e.currentTarget.src = 'https://via.placeholder.com/200x300/f3f4f6/6b7280?text=' + encodeURIComponent(device.name);
-                        }}
-                      />
-                    </div>
-                    <h3 className="font-bold text-gray-900 text-xs sm:text-sm mb-2 text-center leading-tight">{device.name}</h3>
-                    <div className="text-center">
-                      <span className="text-red-600 font-extrabold text-sm sm:text-base">{device.price}</span>
-                      <span className="text-gray-400 text-xs ml-1">from</span>
-                    </div>
-                    <button className="w-full mt-3 bg-red-50 text-red-600 font-semibold text-xs py-2 rounded-lg group-hover:bg-red-600 group-hover:text-white transition-all">
-                      Get Quote
-                    </button>
+            {loading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
+                  <div key={i} className="bg-white border-2 border-gray-100 rounded-2xl p-4 animate-pulse">
+                    <div className="bg-gray-200 rounded-xl h-32 sm:h-40 mb-3"></div>
+                    <div className="bg-gray-200 h-4 rounded mb-2"></div>
+                    <div className="bg-gray-200 h-3 rounded w-2/3 mx-auto mb-3"></div>
+                    <div className="bg-gray-200 h-8 rounded"></div>
                   </div>
-                </Link>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : appleDevices.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+                {appleDevices.map((device) => (
+                  <Link to={`/sell?device=${encodeURIComponent(device.fullName)}`} key={device._id}>
+                    <div className="group bg-white border-2 border-gray-100 rounded-2xl p-4 hover:border-red-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                      <div className="bg-gray-50 rounded-xl p-4 mb-3 flex items-center justify-center h-32 sm:h-40">
+                        <img 
+                          src={device.imageUrl || `https://via.placeholder.com/200x300/f3f4f6/6b7280?text=${encodeURIComponent(device.name)}`}
+                          alt={device.fullName}
+                          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            e.currentTarget.src = `https://via.placeholder.com/200x300/f3f4f6/6b7280?text=${encodeURIComponent(device.name)}`;
+                          }}
+                        />
+                      </div>
+                      <h3 className="font-bold text-gray-900 text-xs sm:text-sm mb-2 text-center leading-tight">{device.name}</h3>
+                      <div className="text-center">
+                        <span className="text-red-600 font-extrabold text-sm sm:text-base">
+                          {device.maxPrice > 0 ? `£${device.maxPrice}` : 'TBC'}
+                        </span>
+                        <span className="text-gray-400 text-xs ml-1">from</span>
+                      </div>
+                      <button className="w-full mt-3 bg-red-50 text-red-600 font-semibold text-xs py-2 rounded-lg group-hover:bg-red-600 group-hover:text-white transition-all">
+                        Get Quote
+                      </button>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-gray-500">No devices available at the moment.</p>
+              </div>
+            )}
           </div>
 
           {/* Samsung Devices */}
@@ -360,39 +428,51 @@ export default function Home() {
                 View All <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-              {[
-                { name: 'Galaxy S24 Ultra', price: '£680', image: 'https://storage.googleapis.com/atomjuice-product-images/samsung/galaxy-s24-ultra/default.png' },
-                { name: 'Galaxy S24 Plus', price: '£580', image: 'https://storage.googleapis.com/atomjuice-product-images/samsung/galaxy-s24-plus/default.png' },
-                { name: 'Galaxy S24', price: '£480', image: 'https://storage.googleapis.com/atomjuice-product-images/samsung/galaxy-s24/default.png' },
-                { name: 'Galaxy S23 Ultra', price: '£550', image: 'https://storage.googleapis.com/atomjuice-product-images/samsung/galaxy-s23-ultra/default.png' },
-                { name: 'Galaxy Z Fold 5', price: '£720', image: 'https://storage.googleapis.com/atomjuice-product-images/samsung/galaxy-z-fold-5/default.png' },
-                { name: 'Galaxy Z Flip 5', price: '£520', image: 'https://storage.googleapis.com/atomjuice-product-images/samsung/galaxy-z-flip-5/default.png' },
-              ].map((device) => (
-                <Link to={`/sell?device=${encodeURIComponent(device.name)}`} key={device.name}>
-                  <div className="group bg-white border-2 border-gray-100 rounded-2xl p-4 hover:border-red-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-                    <div className="bg-gray-50 rounded-xl p-4 mb-3 flex items-center justify-center h-32 sm:h-40">
-                      <img 
-                        src={device.image} 
-                        alt={device.name}
-                        className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
-                        onError={(e) => {
-                          e.currentTarget.src = 'https://via.placeholder.com/200x300/f3f4f6/6b7280?text=' + encodeURIComponent(device.name);
-                        }}
-                      />
-                    </div>
-                    <h3 className="font-bold text-gray-900 text-xs sm:text-sm mb-2 text-center leading-tight">{device.name}</h3>
-                    <div className="text-center">
-                      <span className="text-red-600 font-extrabold text-sm sm:text-base">{device.price}</span>
-                      <span className="text-gray-400 text-xs ml-1">from</span>
-                    </div>
-                    <button className="w-full mt-3 bg-red-50 text-red-600 font-semibold text-xs py-2 rounded-lg group-hover:bg-red-600 group-hover:text-white transition-all">
-                      Get Quote
-                    </button>
+            {loading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
+                  <div key={i} className="bg-white border-2 border-gray-100 rounded-2xl p-4 animate-pulse">
+                    <div className="bg-gray-200 rounded-xl h-32 sm:h-40 mb-3"></div>
+                    <div className="bg-gray-200 h-4 rounded mb-2"></div>
+                    <div className="bg-gray-200 h-3 rounded w-2/3 mx-auto mb-3"></div>
+                    <div className="bg-gray-200 h-8 rounded"></div>
                   </div>
-                </Link>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : samsungDevices.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+                {samsungDevices.map((device) => (
+                  <Link to={`/sell?device=${encodeURIComponent(device.fullName)}`} key={device._id}>
+                    <div className="group bg-white border-2 border-gray-100 rounded-2xl p-4 hover:border-red-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                      <div className="bg-gray-50 rounded-xl p-4 mb-3 flex items-center justify-center h-32 sm:h-40">
+                        <img 
+                          src={device.imageUrl || `https://via.placeholder.com/200x300/f3f4f6/6b7280?text=${encodeURIComponent(device.name)}`}
+                          alt={device.fullName}
+                          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            e.currentTarget.src = `https://via.placeholder.com/200x300/f3f4f6/6b7280?text=${encodeURIComponent(device.name)}`;
+                          }}
+                        />
+                      </div>
+                      <h3 className="font-bold text-gray-900 text-xs sm:text-sm mb-2 text-center leading-tight">{device.name}</h3>
+                      <div className="text-center">
+                        <span className="text-red-600 font-extrabold text-sm sm:text-base">
+                          {device.maxPrice > 0 ? `£${device.maxPrice}` : 'TBC'}
+                        </span>
+                        <span className="text-gray-400 text-xs ml-1">from</span>
+                      </div>
+                      <button className="w-full mt-3 bg-red-50 text-red-600 font-semibold text-xs py-2 rounded-lg group-hover:bg-red-600 group-hover:text-white transition-all">
+                        Get Quote
+                      </button>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-gray-500">No devices available at the moment.</p>
+              </div>
+            )}
           </div>
         </div>
       </section>
