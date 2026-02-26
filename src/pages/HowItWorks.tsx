@@ -37,7 +37,7 @@ export default function HowItWorks() {
             How It <span className="text-red-600">Works</span>
           </h1>
           <p className="text-sm sm:text-lg text-gray-500 max-w-2xl mx-auto mb-7 sm:mb-10 leading-relaxed px-2">
-            Selling your phone has never been easier. Follow our simple 4-step process to turn your old device into cash in 24 hours.
+            Selling your phone has never been easier. Follow our simple 4-step process to turn your old device into cash quickly.
           </p>
           <Link to="/sell">
             <button className="group bg-red-600 hover:bg-red-700 text-white font-bold px-7 sm:px-10 py-3.5 sm:py-4 rounded-2xl flex items-center gap-2 mx-auto transition-all shadow-xl shadow-red-200 hover:-translate-y-0.5 text-sm sm:text-base w-full sm:w-auto justify-center">
@@ -106,11 +106,11 @@ export default function HowItWorks() {
               light: 'bg-green-50',
               iconColor: 'text-green-600',
               border: 'border-green-100',
-              tag: 'Within 24 hours',
+              tag: 'Fast Payment',
               tagBg: 'bg-green-50 text-green-600',
               body: [
-                'Once we receive your device, our expert technicians inspect it to verify the condition matches your description. Payment is sent within 24 hours.',
-                'Money is transferred directly to your UK bank account via faster payments. No vouchers, no gift cards — just cash in your account the very next day!',
+                'Once we receive your device, our expert technicians inspect it to verify the condition matches your description. Payment is sent promptly.',
+                'Money is transferred directly to your UK bank account via faster payments. No vouchers, no gift cards — just cash straight to your account!',
               ],
             },
           ].map(({ num, icon: Icon, title, color, light, iconColor, border, tag, tagBg, body }) => (
@@ -152,7 +152,7 @@ export default function HowItWorks() {
               <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
             </button>
           </Link>
-          <p className="text-xs sm:text-sm text-gray-400 text-center">No obligation · Free postage · Paid in 24 hours</p>
+          <p className="text-xs sm:text-sm text-gray-400 text-center">No obligation · Free postage · Fast bank transfer</p>
         </div>
       </section>
 
@@ -173,7 +173,7 @@ export default function HowItWorks() {
               { icon: Zap, title: 'Instant Quote', desc: 'Get a real-time valuation based on your device model and condition. Our pricing is transparent and competitive.', bg: 'bg-red-50', color: 'text-red-600', border: 'hover:border-red-200' },
               { icon: Printer, title: 'Free Postage', desc: 'Choose between printing a prepaid label or receiving a free packaging kit delivered to your door.', bg: 'bg-blue-50', color: 'text-blue-600', border: 'hover:border-blue-200' },
               { icon: ShieldCheck, title: 'Device Inspection', desc: 'Our certified technicians carefully inspect your device to ensure it matches the described condition.', bg: 'bg-red-50', color: 'text-red-600', border: 'hover:border-red-200' },
-              { icon: TrendingUp, title: 'Fast Payment', desc: 'Payments are processed via UK bank transfer within 24 hours of receiving your device.', bg: 'bg-green-50', color: 'text-green-600', border: 'hover:border-green-200' },
+              { icon: TrendingUp, title: 'Fast Payment', desc: 'Payments are processed via UK bank transfer promptly after receiving and inspecting your device.', bg: 'bg-green-50', color: 'text-green-600', border: 'hover:border-green-200' },
             ].map(({ icon: Icon, title, desc, bg, color, border }) => (
               <div key={title} className={`group p-4 sm:p-7 rounded-2xl sm:rounded-3xl bg-gray-50 border-2 border-transparent ${border} hover:bg-white hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex gap-4 sm:gap-5`}>
                 <div className={`w-10 h-10 sm:w-12 sm:h-12 ${bg} ${color} rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}>
@@ -268,62 +268,6 @@ export default function HowItWorks() {
         </div>
       </section>
 
-      {/* ── GUARANTEES ── */}
-      <section className="py-10 sm:py-20 px-4 sm:px-6 md:px-12 bg-white">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-8 sm:mb-14">
-            <div className="inline-flex items-center gap-2 bg-red-50 text-red-700 text-xs font-bold px-3 sm:px-4 py-2 rounded-full mb-3 sm:mb-4">
-              <ShieldCheck className="w-3.5 h-3.5" /> Our Guarantees
-            </div>
-            <h2 className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-gray-900 mb-2 sm:mb-4 px-2">
-              Your <span className="text-red-600">Peace of Mind</span> is Our Priority
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
-            {[
-              { icon: Clock, title: '24-Hour Payment', desc: 'We guarantee payment within 24 hours of receiving your device. Most customers get paid the very next day.', bg: 'bg-green-50', color: 'text-green-600', stat: '24hrs', statLabel: 'Guaranteed' },
-              { icon: Lock, title: 'Data Security', desc: 'Military-grade data wiping ensures all your personal information is permanently and securely erased.', bg: 'bg-red-50', color: 'text-red-600', stat: '100%', statLabel: 'Data Wiped' },
-              { icon: ShieldCheck, title: 'Insured Shipping', desc: "Your device is fully insured during transit. If anything goes wrong, you're completely covered.", bg: 'bg-blue-50', color: 'text-blue-600', stat: '£1000', statLabel: 'Cover' },
-            ].map(({ icon: Icon, title, desc, bg, color, stat, statLabel }) => (
-              <div key={title} className="bg-gray-50 rounded-2xl sm:rounded-3xl p-4 sm:p-8 border-2 border-transparent hover:border-red-100 hover:bg-white hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                {/* Mobile: horizontal row; sm+: centered vertical */}
-                <div className="flex sm:flex-col sm:items-center items-center gap-4 sm:gap-0 mb-3 sm:mb-0">
-                  <div className={`w-11 h-11 sm:w-14 sm:h-14 ${bg} ${color} rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0 sm:mx-auto sm:mb-4`}>
-                    <Icon className="w-5 h-5 sm:w-7 sm:h-7" />
-                  </div>
-                  <div className="sm:text-center">
-                    <div className="text-2xl sm:text-3xl font-extrabold text-red-600 leading-none">{stat}</div>
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest sm:mb-3">{statLabel}</div>
-                  </div>
-                </div>
-                <div className="sm:text-center">
-                  <h3 className="font-extrabold text-gray-900 text-sm sm:text-lg mb-1 sm:mb-3">{title}</h3>
-                  <p className="text-gray-500 text-xs sm:text-sm leading-relaxed">{desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── SOCIAL PROOF STRIP ── */}
-      <section className="py-8 sm:py-10 px-4 sm:px-6 md:px-12 bg-gray-50 border-y border-gray-100">
-        <div className="max-w-5xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6 text-center">
-          {[
-            { value: '50,000+', label: 'Phones Bought' },
-            { value: '£12M+', label: 'Paid to Customers' },
-            { value: '24hrs', label: 'Average Payout' },
-            { value: '4.9★', label: 'Trustpilot Rating' },
-          ].map(({ value, label }) => (
-            <div key={label} className="bg-white sm:bg-transparent rounded-2xl sm:rounded-none p-3 sm:p-0 border border-gray-100 sm:border-0">
-              <div className="text-xl sm:text-3xl font-extrabold text-gray-900">{value}</div>
-              <div className="text-gray-400 text-[11px] sm:text-xs font-medium mt-1">{label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* ── CTA BANNER ── */}
       <section className="relative bg-white overflow-hidden py-12 sm:py-20 px-4 sm:px-6 md:px-12">
         <div className="absolute inset-0 bg-gradient-to-br from-red-50 via-white to-red-50 pointer-events-none" />
@@ -355,7 +299,7 @@ export default function HowItWorks() {
           <div className="flex flex-wrap justify-center gap-3 sm:gap-6 mt-7 sm:mt-10">
             {[
               { icon: ShieldCheck, text: 'Free & Secure', color: 'text-red-500' },
-              { icon: Clock, text: 'Paid in 24 Hours', color: 'text-red-600' },
+              { icon: Clock, text: 'Fast Bank Transfer', color: 'text-red-600' },
               { icon: Lock, text: 'Data Wiped', color: 'text-red-500' },
               { icon: BadgeCheck, text: 'No Hidden Fees', color: 'text-red-500' },
             ].map(({ icon: Icon, text, color }) => (

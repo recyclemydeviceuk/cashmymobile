@@ -1,29 +1,31 @@
 import { useState, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
-  Plus, Search, Filter, Download, Eye, Trash2,
-  Package, ChevronDown, X,
+  Search, Filter, Download, Eye, Trash2,
+  Package, ChevronDown, X, RefreshCw, Loader2,
 } from 'lucide-react';
 import AdminLayout from '../AdminLayout';
 import { useAdmin } from '../AdminContext';
-import {
-  ORDER_STATUSES, ORDER_STATUS_COLORS, ORDER_STATUS_LABELS,
-  PAYMENT_STATUS_LABELS,
-  type Order, type OrderStatus, type PaymentStatus,
-} from '../types';
-import OrderModal from '../components/OrderModal';
+import type { Order, UtilityItem } from '../types';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
+
+function StatusBadge({ value, statuses, fallbackColor }: { value: string; statuses: UtilityItem[]; fallbackColor: string }) {
+  const match = statuses.find(s => (s.value || s.name) === value);
+  return (
+    <span className={`text-xs font-semibold px-2 py-1 rounded-full whitespace-nowrap ${match?.color || fallbackColor}`}>
+      {match?.name || value}
+    </span>
+  );
+}
 
 export default function AdminOrders() {
-  const { orders, deleteOrder, updateOrder } = useAdmin();
+  const { orders, deleteOrder, updateOrder, fetchOrders, loadingOrders, loadMoreOrders, ordersHasMore, orderStatuses, paymentStatuses } = useAdmin();
   const [searchParams] = useSearchParams();
 
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<OrderStatus | ''>(
-    (searchParams.get('status') as OrderStatus) || ''
+  const [statusFilter, setStatusFilter] = useState<string>(
+    searchParams.get('status') || ''
   );
-  const [paymentFilter, setPaymentFilter] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
@@ -33,11 +35,10 @@ export default function AdminOrders() {
   const filtered = useMemo(() => {
     return orders.filter(o => {
       if (statusFilter && o.status !== statusFilter) return false;
-      if (paymentFilter && o.paymentMethod !== paymentFilter) return false;
       if (search) {
         const q = search.toLowerCase();
         return (
-          o.orderId.toLowerCase().includes(q) ||
+          o.orderNumber.toLowerCase().includes(q) ||
           o.customerName.toLowerCase().includes(q) ||
           o.customerEmail.toLowerCase().includes(q) ||
           o.customerPhone.includes(q) ||
@@ -46,7 +47,7 @@ export default function AdminOrders() {
       }
       return true;
     });
-  }, [orders, search, statusFilter, paymentFilter]);
+  }, [orders, search, statusFilter]);
 
   const handleDelete = (id: string) => {
     deleteOrder(id);
@@ -54,9 +55,9 @@ export default function AdminOrders() {
   };
 
   const exportCSV = () => {
-    const headers = ['Order ID', 'Customer', 'Email', 'Phone', 'Device', 'Network', 'Grade', 'Storage', 'Offered £', 'Final £', 'Status', 'Source', 'Payment', 'Postage', 'Date'];
+    const headers = ['Order Number', 'Customer', 'Email', 'Phone', 'Device', 'Network', 'Grade', 'Storage', 'Offered £', 'Final £', 'Status', 'Source', 'Payment', 'Postage', 'Date'];
     const rows = filtered.map(o => [
-      o.orderId, o.customerName, o.customerEmail, o.customerPhone,
+      o.orderNumber, o.customerName, o.customerEmail, o.customerPhone,
       o.deviceName, o.network, o.deviceGrade, o.storage,
       o.offeredPrice, o.finalPrice || '', o.status, o.source,
       o.paymentMethod, o.postageMethod,
@@ -71,9 +72,9 @@ export default function AdminOrders() {
   };
 
   const clearFilters = () => {
-    setStatusFilter(''); setPaymentFilter(''); setSearch('');
+    setStatusFilter(''); setSearch('');
   };
-  const hasFilters = statusFilter || paymentFilter || search;
+  const hasFilters = statusFilter || search;
 
   const toggleOrder = (id: string) => {
     const newSet = new Set(selectedOrders);
@@ -90,21 +91,18 @@ export default function AdminOrders() {
     }
   };
 
-  const bulkUpdateStatus = (status: OrderStatus) => {
-    selectedOrders.forEach(id => {
-      updateOrder(id, { status });
-    });
+  const bulkUpdateStatus = async (statusValue: string) => {
+    await Promise.all(Array.from(selectedOrders).map(id => updateOrder(id, { status: statusValue as any })));
     setSelectedOrders(new Set());
     setShowBulkActions(false);
   };
 
-  const bulkUpdatePaymentStatus = (paymentStatus: PaymentStatus) => {
-    selectedOrders.forEach(id => {
-      updateOrder(id, { paymentStatus });
-    });
-    setSelectedOrders(new Set());
-    setShowBulkActions(false);
-  };
+  const sentinelRef = useInfiniteScroll({
+    onLoadMore: loadMoreOrders,
+    hasMore: ordersHasMore,
+    loading: loadingOrders,
+    threshold: 200,
+  });
 
   return (
     <AdminLayout title="Orders" subtitle="Manage all incoming orders from website and API">
@@ -118,13 +116,13 @@ export default function AdminOrders() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search orders..."
-              className="pl-9 pr-4 py-2 text-sm border border-gray-700 rounded-xl bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 w-52"
+              className="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 w-52"
             />
           </div>
 
           <button
             onClick={() => setShowFilters(v => !v)}
-            className={`flex items-center gap-1.5 px-3 py-2 text-sm border rounded-xl transition-all ${showFilters ? 'border-red-500 text-red-400 bg-red-500/10' : 'border-gray-700 text-gray-400 bg-gray-800 hover:bg-gray-700'}`}
+            className={`flex items-center gap-1.5 px-3 py-2 text-sm border rounded-xl transition-all ${showFilters ? 'border-red-500 text-red-600 bg-red-50' : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'}`}
           >
             <Filter className="w-4 h-4" />
             Filters
@@ -152,14 +150,16 @@ export default function AdminOrders() {
               <ChevronDown className="w-4 h-4" /> Bulk Actions
             </button>
           )}
-          <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-2 text-sm border border-gray-700 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-400 transition-all">
-            <Download className="w-4 h-4" /> Export CSV
-          </button>
           <button
-            onClick={() => { setEditingOrder(null); setShowModal(true); }}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition-all shadow-sm"
+            onClick={() => fetchOrders()}
+            disabled={loadingOrders}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm border border-gray-300 rounded-xl bg-white hover:bg-gray-50 text-gray-700 transition-all disabled:opacity-50"
           >
-            <Plus className="w-4 h-4" /> Add Order
+            {loadingOrders ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            Refresh
+          </button>
+          <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-2 text-sm border border-gray-300 rounded-xl bg-white hover:bg-gray-50 text-gray-700 transition-all">
+            <Download className="w-4 h-4" /> Export CSV
           </button>
         </div>
       </div>
@@ -170,35 +170,19 @@ export default function AdminOrders() {
           <p className="text-xs font-bold text-amber-400 mb-3 uppercase tracking-wider">Bulk Update {selectedOrders.size} Order{selectedOrders.size > 1 ? 's' : ''}</p>
           <div className="flex flex-wrap gap-2">
             <div>
-              <p className="text-xs text-gray-400 mb-2 font-semibold">Order Status</p>
+              <p className="text-xs text-gray-400 mb-2 font-semibold">Update Order Status</p>
               <div className="flex flex-wrap gap-1.5">
-                {ORDER_STATUSES.slice(0, 6).map(s => (
+                {orderStatuses.filter(s => s.isActive).map(s => (
                   <button
-                    key={s}
-                    onClick={() => bulkUpdateStatus(s)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${ORDER_STATUS_COLORS[s]} hover:opacity-80`}
+                    key={s.id}
+                    onClick={() => bulkUpdateStatus(s.value || s.name)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all hover:opacity-80 ${s.color || 'bg-gray-100 text-gray-700'}`}
                   >
-                    {ORDER_STATUS_LABELS[s]}
+                    {s.name}
                   </button>
                 ))}
               </div>
-            </div>
-            <div className="ml-4">
-              <p className="text-xs text-gray-400 mb-2 font-semibold">Payment Status</p>
-              <div className="flex gap-1.5">
-                <button
-                  onClick={() => bulkUpdatePaymentStatus('PENDING')}
-                  className="px-3 py-1 rounded-lg text-xs font-semibold bg-amber-100 text-amber-700 hover:bg-amber-200 transition-all"
-                >
-                  Mark as Pending
-                </button>
-                <button
-                  onClick={() => bulkUpdatePaymentStatus('PAID')}
-                  className="px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-all"
-                >
-                  Mark as Paid
-                </button>
-              </div>
+              <p className="text-xs text-gray-500 italic mt-2">Payment status updates automatically based on order status</p>
             </div>
           </div>
         </div>
@@ -206,16 +190,10 @@ export default function AdminOrders() {
 
       {/* ── Filter Bar ─────────────────────────────────────────────────── */}
       {showFilters && (
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 mb-4 flex flex-wrap gap-3">
-          <SelectFilter label="Status" value={statusFilter} onChange={v => setStatusFilter(v as OrderStatus | '')}>
+        <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 flex flex-wrap gap-3 shadow-sm">
+          <SelectFilter label="Status" value={statusFilter} onChange={v => setStatusFilter(v)}>
             <option value="">All Statuses</option>
-            {ORDER_STATUSES.map(s => <option key={s} value={s}>{ORDER_STATUS_LABELS[s]}</option>)}
-          </SelectFilter>
-          <SelectFilter label="Payment" value={paymentFilter} onChange={v => setPaymentFilter(v)}>
-            <option value="">All Payment Types</option>
-            <option value="bank">Bank Transfer</option>
-            <option value="paypal">PayPal</option>
-            <option value="cheque">Cheque</option>
+            {orderStatuses.map(s => <option key={s.id} value={s.value || s.name}>{s.name}</option>)}
           </SelectFilter>
         </div>
       )}
@@ -223,96 +201,100 @@ export default function AdminOrders() {
       {/* ── Status Quick Filters ────────────────────────────────────────── */}
       <div className="flex gap-2 flex-wrap mb-4 overflow-x-auto pb-1">
         <QuickFilter active={!statusFilter} label="All" count={orders.length} onClick={() => setStatusFilter('')} />
-        {ORDER_STATUSES.map(s => {
-          const cnt = orders.filter(o => o.status === s).length;
+        {orderStatuses.map(s => {
+          const val = s.value || s.name;
+          const cnt = orders.filter(o => o.status === val).length;
           if (!cnt) return null;
-          return <QuickFilter key={s} active={statusFilter === s} label={ORDER_STATUS_LABELS[s]} count={cnt} onClick={() => setStatusFilter(s)} color={ORDER_STATUS_COLORS[s]} />;
+          return <QuickFilter key={s.id} active={statusFilter === val} label={s.name} count={cnt} onClick={() => setStatusFilter(val)} color={s.color} />;
         })}
       </div>
 
       {/* ── Table ──────────────────────────────────────────────────────── */}
-      <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
-        {filtered.length === 0 ? (
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+        {loadingOrders ? (
           <div className="py-16 text-center">
-            <Package className="w-12 h-12 mx-auto text-gray-700 mb-3" />
+            <Loader2 className="w-10 h-10 mx-auto text-red-500 animate-spin mb-3" />
+            <p className="text-gray-500 font-medium">Loading orders...</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="py-16 text-center">
+            <Package className="w-12 h-12 mx-auto text-gray-400 mb-3" />
             <p className="text-gray-500 font-medium">No orders found</p>
             <p className="text-sm text-gray-600 mt-1">Try adjusting your filters</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[900px]">
-              <thead className="bg-gray-800/60 border-b border-gray-800">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="text-left px-4 py-3 w-10">
                     <input
                       type="checkbox"
                       checked={selectedOrders.size === filtered.length && filtered.length > 0}
                       onChange={toggleAll}
-                      className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-red-600 focus:ring-red-500 focus:ring-offset-gray-900 cursor-pointer"
+                      className="w-4 h-4 rounded border-gray-300 bg-white text-red-600 focus:ring-red-500 cursor-pointer"
                     />
                   </th>
-                  {['Order ID', 'Customer', 'Device', 'Grade', '£ Offered', '£ Final', 'Status', 'Payment', 'Date', 'Actions'].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                  {['Order Number', 'Customer', 'Device', 'Grade', '£ Offered', 'Source', 'Status', 'Payment', 'Date', 'Actions'].map(h => (
+                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800">
+              <tbody className="divide-y divide-gray-200">
                 {filtered.map(o => (
-                  <tr key={o.id} className={`hover:bg-gray-800/50 transition-colors ${selectedOrders.has(o.id) ? 'bg-red-500/5' : ''}`}>
+                  <tr key={o.id} className={`hover:bg-gray-50 transition-colors ${selectedOrders.has(o.id) ? 'bg-red-50' : ''}`}>
                     <td className="px-4 py-3">
                       <input
                         type="checkbox"
                         checked={selectedOrders.has(o.id)}
                         onChange={() => toggleOrder(o.id)}
-                        className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-red-600 focus:ring-red-500 focus:ring-offset-gray-900 cursor-pointer"
+                        className="w-4 h-4 rounded border-gray-300 bg-white text-red-600 focus:ring-red-500 cursor-pointer"
                       />
                     </td>
                     <td className="px-4 py-3">
-                      <Link to={`/admin-cashmymobile/orders/${o.id}`} className="font-semibold text-red-600 hover:text-red-700">{o.orderId}</Link>
+                      <Link to={`/admin-cashmymobile/orders/${o.id}`} className="font-semibold text-red-600 hover:text-red-700">#{o.orderNumber}</Link>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="font-medium text-gray-200">{o.customerName}</p>
-                      <p className="text-xs text-gray-500">{o.customerPhone}</p>
+                      <p className="font-medium text-gray-900">{o.customerName}</p>
+                      <p className="text-xs text-gray-600">{o.customerPhone}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-gray-300">{o.deviceName}</p>
-                      <p className="text-xs text-gray-500">{o.storage} · {o.network}</p>
+                      <p className="text-gray-900">{o.deviceName}</p>
+                      <p className="text-xs text-gray-600">{o.storage} · {o.network}</p>
                     </td>
                     <td className="px-4 py-3">
                       <GradeBadge grade={o.deviceGrade} />
                     </td>
-                    <td className="px-4 py-3 font-semibold text-gray-200">£{o.offeredPrice}</td>
-                    <td className="px-4 py-3 font-bold text-emerald-400">
-                      {o.finalPrice ? `£${o.finalPrice}` : <span className="text-gray-600">—</span>}
-                    </td>
+                    <td className="px-4 py-3 font-semibold text-gray-900">£{o.offeredPrice}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs font-semibold px-2 py-1 rounded-full whitespace-nowrap ${ORDER_STATUS_COLORS[o.status]}`}>
-                        {ORDER_STATUS_LABELS[o.status]}
+                      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${o.source === 'API' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                        {o.source}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${o.paymentStatus === 'PAID' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                        {PAYMENT_STATUS_LABELS[o.paymentStatus]}
-                      </span>
+                      <StatusBadge value={o.status} statuses={orderStatuses} fallbackColor="bg-gray-100 text-gray-700" />
                     </td>
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">
+                    <td className="px-4 py-3">
+                      <StatusBadge value={o.paymentStatus} statuses={paymentStatuses} fallbackColor="bg-amber-100 text-amber-700" />
+                    </td>
+                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap text-xs">
                       {new Date(o.createdAt).toLocaleDateString('en-GB')}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
-                        <Link to={`/admin-cashmymobile/orders/${o.id}`} className="p-1.5 rounded-lg text-gray-500 hover:text-blue-400 hover:bg-blue-500/10 transition-all">
+                        <Link to={`/admin-cashmymobile/orders/${o.id}`} className="p-1.5 rounded-lg text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-all">
                           <Eye className="w-4 h-4" />
                         </Link>
                         <button
                           onClick={() => setStatusUpdateOrder(o)}
-                          className="p-1.5 rounded-lg text-gray-500 hover:text-orange-400 hover:bg-orange-500/10 transition-all"
+                          className="p-1.5 rounded-lg text-gray-500 hover:text-orange-600 hover:bg-orange-50 transition-all"
                           title="Update status"
                         >
                           <ChevronDown className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => setConfirmDelete(o.id)}
-                          className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                          className="p-1.5 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 transition-all"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -324,19 +306,31 @@ export default function AdminOrders() {
             </table>
           </div>
         )}
+        
+        {/* Infinite Scroll Sentinel */}
+        {!loadingOrders && filtered.length > 0 && (
+          <div ref={sentinelRef} className="h-20 flex items-center justify-center border-t border-gray-200">
+            {ordersHasMore && (
+              <div className="flex items-center gap-2 text-gray-500">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="text-sm">Loading more...</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Confirm Delete Dialog ───────────────────────────────────────── */}
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 max-w-sm w-full shadow-xl">
             <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <Trash2 className="w-6 h-6 text-red-400" />
             </div>
-            <h3 className="font-bold text-white text-center mb-1">Delete Order?</h3>
-            <p className="text-sm text-gray-500 text-center mb-5">This action cannot be undone.</p>
+            <h3 className="font-bold text-gray-900 text-center mb-1">Delete Order?</h3>
+            <p className="text-sm text-gray-600 text-center mb-5">This action cannot be undone.</p>
             <div className="flex gap-3">
-              <button onClick={() => setConfirmDelete(null)} className="flex-1 py-2.5 rounded-xl border border-gray-700 text-sm font-semibold text-gray-400 hover:bg-gray-800">Cancel</button>
+              <button onClick={() => setConfirmDelete(null)} className="flex-1 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancel</button>
               <button onClick={() => handleDelete(confirmDelete)} className="flex-1 py-2.5 rounded-xl bg-red-600 text-sm font-semibold text-white hover:bg-red-700">Delete</button>
             </div>
           </div>
@@ -346,47 +340,39 @@ export default function AdminOrders() {
       {/* ── Status Update Modal ────────────────────────────────────────── */}
       {statusUpdateOrder && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl w-full max-w-md">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
+          <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <div>
-                <h3 className="font-bold text-white">Update Order Status</h3>
-                <p className="text-xs text-gray-500 mt-0.5">{statusUpdateOrder.orderId} • {statusUpdateOrder.customerName}</p>
+                <h3 className="font-bold text-gray-900">Update Order Status</h3>
+                <p className="text-xs text-gray-500 mt-0.5">#{statusUpdateOrder.orderNumber} • {statusUpdateOrder.customerName}</p>
               </div>
-              <button onClick={() => setStatusUpdateOrder(null)} className="p-1 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800">
+              <button onClick={() => setStatusUpdateOrder(null)} className="p-1 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="px-6 py-4">
               <p className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wider">Select New Status</p>
               <div className="grid grid-cols-2 gap-2">
-                {ORDER_STATUSES.map(s => (
-                  <button
-                    key={s}
-                    onClick={() => {
-                      updateOrder(statusUpdateOrder.id, { status: s });
-                      setStatusUpdateOrder(null);
-                    }}
-                    className={`px-3 py-2.5 rounded-xl text-xs font-semibold transition-all text-left ${
-                      statusUpdateOrder.status === s
-                        ? ORDER_STATUS_COLORS[s] + ' ring-2 ring-current'
-                        : ORDER_STATUS_COLORS[s] + ' opacity-60 hover:opacity-100'
-                    }`}
-                  >
-                    {ORDER_STATUS_LABELS[s]}
-                  </button>
-                ))}
+                {orderStatuses.filter(s => s.isActive).map(s => {
+                  const val = s.value || s.name;
+                  const isActive = statusUpdateOrder.status === val;
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => {
+                        updateOrder(statusUpdateOrder.id, { status: val as any });
+                        setStatusUpdateOrder(null);
+                      }}
+                      className={`px-3 py-2.5 rounded-xl text-xs font-semibold transition-all text-left ${s.color || 'bg-gray-100 text-gray-700'} ${isActive ? 'ring-2 ring-current' : 'opacity-60 hover:opacity-100'}`}
+                    >
+                      {s.name}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
         </div>
-      )}
-
-      {/* ── Order Modal ─────────────────────────────────────────────────── */}
-      {showModal && (
-        <OrderModal
-          order={editingOrder}
-          onClose={() => { setShowModal(false); setEditingOrder(null); }}
-        />
       )}
     </AdminLayout>
   );
@@ -400,7 +386,7 @@ function SelectFilter({ label, value, onChange, children }: { label: string; val
         <select
           value={value}
           onChange={e => onChange(e.target.value)}
-          className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-700 rounded-lg bg-gray-800 text-gray-300 focus:outline-none focus:border-red-500"
+          className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:border-red-500"
         >
           {children}
         </select>
@@ -415,11 +401,11 @@ function QuickFilter({ active, label, count, onClick }: { active: boolean; label
     <button
       onClick={onClick}
       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border ${
-        active ? 'border-red-500 bg-red-500/10 text-red-400' : 'border-gray-700 bg-gray-800 text-gray-500 hover:bg-gray-700'
+        active ? 'border-red-500 bg-red-50 text-red-600' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
       }`}
     >
       {label}
-      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${active ? 'bg-red-500/20 text-red-400' : 'bg-gray-700 text-gray-500'}`}>
+      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${active ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'}`}>
         {count}
       </span>
     </button>

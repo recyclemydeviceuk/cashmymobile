@@ -1,9 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, AlertCircle, ArrowLeft, RefreshCw, ShieldCheck } from 'lucide-react';
-
-const ADMIN_EMAIL = 'recyclemydeviceuk@gmail.com';
-const MOCK_OTP = '123456';
+import { adminAuthApi } from '../../api/adminAuth';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -33,16 +31,19 @@ export default function AdminLogin() {
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-      setError('This email is not authorised to access the admin panel.');
-      return;
-    }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 800));
-    setLoading(false);
-    setStep('otp');
-    startResendTimer();
-    setTimeout(() => inputRefs.current[0]?.focus(), 100);
+    
+    try {
+      await adminAuthApi.sendOTP(email);
+      setLoading(false);
+      setStep('otp');
+      startResendTimer();
+      setTimeout(() => inputRefs.current[0]?.focus(), 100);
+    } catch (error: any) {
+      setLoading(false);
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Failed to send OTP. Please try again.';
+      setError(errorMessage);
+    }
   };
 
   const handleOtpChange = (idx: number, val: string) => {
@@ -74,16 +75,24 @@ export default function AdminLogin() {
     if (code.length < 6) { setError('Please enter the full 6-digit code.'); return; }
     setError('');
     setLoading(true);
-    await new Promise(r => setTimeout(r, 700));
-    if (code === MOCK_OTP) {
-      localStorage.setItem('admin_auth', 'true');
-      navigate('/admin-cashmymobile');
-    } else {
-      setError('Invalid OTP. Please try again.');
+    
+    try {
+      const response = await adminAuthApi.verifyOTP(email, code);
+      
+      if (response.success && response.data) {
+        localStorage.setItem('adminAuthToken', response.data.token);
+        localStorage.setItem('adminUser', JSON.stringify(response.data.admin));
+        navigate('/admin-cashmymobile');
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (error: any) {
+      setLoading(false);
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Invalid OTP. Please try again.';
+      setError(errorMessage);
       setOtp(['', '', '', '', '', '']);
       setTimeout(() => inputRefs.current[0]?.focus(), 50);
     }
-    setLoading(false);
   };
 
   const handleResend = async () => {
@@ -91,29 +100,37 @@ export default function AdminLogin() {
     setOtp(['', '', '', '', '', '']);
     setError('');
     setLoading(true);
-    await new Promise(r => setTimeout(r, 600));
-    setLoading(false);
-    startResendTimer();
-    setTimeout(() => inputRefs.current[0]?.focus(), 100);
+    
+    try {
+      await adminAuthApi.sendOTP(email);
+      setLoading(false);
+      startResendTimer();
+      setTimeout(() => inputRefs.current[0]?.focus(), 100);
+    } catch (error: any) {
+      setLoading(false);
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Failed to resend OTP. Please try again.';
+      setError(errorMessage);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-red-900/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-red-900/10 rounded-full blur-3xl" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-red-100 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-red-50 rounded-full blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md">
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 shadow-2xl">
+        <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-2xl">
           {/* Logo */}
           <div className="flex flex-col items-center mb-6">
             <img
               src="https://res.cloudinary.com/dn2sab6qc/image/upload/v1771700003/Cashmymobile_logo_y7ndez.png"
               alt="Cash My Mobile"
-              className="h-10 w-auto object-contain brightness-0 invert mb-4"
+              className="h-10 w-auto object-contain mb-4"
+              style={{ filter: 'brightness(0) saturate(100%) invert(27%) sepia(89%) saturate(4392%) hue-rotate(354deg) brightness(92%) contrast(93%)' }}
             />
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-600">
               {step === 'email' ? 'Sign in with your email OTP' : 'Enter the code we sent you'}
             </p>
           </div>
@@ -122,16 +139,16 @@ export default function AdminLogin() {
           {step === 'email' && (
             <form onSubmit={handleSendOtp} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
                   Admin Email
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     type="email"
                     value={email}
                     onChange={e => { setEmail(e.target.value); setError(''); }}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all"
+                    className="w-full bg-white border border-gray-300 rounded-xl pl-10 pr-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all"
                     placeholder="Enter your admin email"
                     autoComplete="email"
                     required
@@ -140,7 +157,7 @@ export default function AdminLogin() {
               </div>
 
               {error && (
-                <div className="flex items-center gap-2 text-sm text-red-400 bg-red-900/20 border border-red-800/40 rounded-xl px-4 py-3">
+                <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
                   {error}
                 </div>
@@ -149,7 +166,7 @@ export default function AdminLogin() {
               <button
                 type="submit"
                 disabled={loading || !email}
-                className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-red-900/30 flex items-center justify-center gap-2"
+                className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <><RefreshCw className="w-4 h-4 animate-spin" /> Sending OTP...</>
@@ -165,11 +182,11 @@ export default function AdminLogin() {
             <form onSubmit={handleVerifyOtp} className="space-y-5">
               <div>
                 <div className="flex items-center gap-2 mb-4">
-                  <button type="button" onClick={() => { setStep('email'); setError(''); setOtp(['', '', '', '', '', '']); }} className="text-gray-500 hover:text-gray-300 transition-colors">
+                  <button type="button" onClick={() => { setStep('email'); setError(''); setOtp(['', '', '', '', '', '']); }} className="text-gray-600 hover:text-gray-900 transition-colors">
                     <ArrowLeft className="w-4 h-4" />
                   </button>
-                  <p className="text-sm text-gray-400">
-                    Code sent to <span className="text-white font-semibold">{email}</span>
+                  <p className="text-sm text-gray-600">
+                    Code sent to <span className="text-gray-900 font-semibold">{email}</span>
                   </p>
                 </div>
 
@@ -185,8 +202,8 @@ export default function AdminLogin() {
                       value={digit}
                       onChange={e => handleOtpChange(i, e.target.value)}
                       onKeyDown={e => handleOtpKeyDown(i, e)}
-                      className={`w-11 h-13 text-center text-xl font-bold bg-gray-800 border rounded-xl text-white focus:outline-none transition-all
-                        ${digit ? 'border-red-500 bg-gray-700' : 'border-gray-700'}
+                      className={`w-11 h-13 text-center text-xl font-bold bg-white border rounded-xl text-gray-900 focus:outline-none transition-all
+                        ${digit ? 'border-red-500 bg-red-50' : 'border-gray-300'}
                         focus:border-red-500 focus:ring-2 focus:ring-red-500/20`}
                       style={{ height: '52px' }}
                     />
@@ -195,7 +212,7 @@ export default function AdminLogin() {
               </div>
 
               {error && (
-                <div className="flex items-center gap-2 text-sm text-red-400 bg-red-900/20 border border-red-800/40 rounded-xl px-4 py-3">
+                <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
                   {error}
                 </div>
@@ -204,7 +221,7 @@ export default function AdminLogin() {
               <button
                 type="submit"
                 disabled={loading || otp.join('').length < 6}
-                className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-red-900/30 flex items-center justify-center gap-2"
+                className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <><RefreshCw className="w-4 h-4 animate-spin" /> Verifying...</>
@@ -214,23 +231,19 @@ export default function AdminLogin() {
               </button>
 
               {/* Resend */}
-              <p className="text-center text-xs text-gray-500">
+              <p className="text-center text-xs text-gray-600">
                 Didn't receive the code?{' '}
                 <button
                   type="button"
                   onClick={handleResend}
                   disabled={resendTimer > 0}
-                  className={`font-semibold transition-colors ${resendTimer > 0 ? 'text-gray-600 cursor-not-allowed' : 'text-red-500 hover:text-red-400'}`}
+                  className={`font-semibold transition-colors ${resendTimer > 0 ? 'text-gray-400 cursor-not-allowed' : 'text-red-600 hover:text-red-700'}`}
                 >
                   {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend OTP'}
                 </button>
               </p>
             </form>
           )}
-
-          <p className="text-center text-xs text-gray-700 mt-6">
-            Demo OTP: <span className="font-mono text-gray-500">123456</span>
-          </p>
         </div>
       </div>
     </div>

@@ -9,10 +9,13 @@ import {
   TrendingUp,
   Clock,
   Lock,
-  HeadphonesIcon,
   Star,
   ArrowRight,
   Sparkles,
+  ThumbsUp,
+  Truck,
+  Infinity,
+  DollarSign,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
@@ -85,8 +88,8 @@ export default function Home() {
             <div className="flex-1 flex items-center justify-center gap-1.5 bg-red-50 border border-red-100 rounded-xl px-3 py-2.5">
               <Clock className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
               <div>
-                <div className="text-xs font-extrabold text-gray-900 leading-none">24 hrs</div>
-                <div className="text-[10px] text-gray-400 leading-none mt-0.5">paid within</div>
+                <div className="text-xs font-extrabold text-gray-900 leading-none">Fast</div>
+                <div className="text-[10px] text-gray-400 leading-none mt-0.5">bank transfer</div>
               </div>
             </div>
             <div className="flex-1 flex items-center justify-center gap-1.5 bg-yellow-50 border border-yellow-100 rounded-xl px-3 py-2.5">
@@ -141,35 +144,8 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right — phone image with floating cards */}
+          {/* Right — phone image */}
           <div className="relative flex justify-center">
-            <div className="absolute -left-4 top-10 bg-white rounded-2xl shadow-xl border border-gray-100 px-4 py-3 flex items-center gap-3 z-20">
-              <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <div className="text-xs text-gray-400 font-medium">Average payout</div>
-                <div className="text-lg font-extrabold text-gray-900">£420</div>
-              </div>
-            </div>
-            <div className="absolute -right-2 top-1/3 bg-white rounded-2xl shadow-xl border border-gray-100 px-4 py-3 flex items-center gap-3 z-20">
-              <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
-                <Clock className="w-5 h-5 text-red-600" />
-              </div>
-              <div>
-                <div className="text-xs text-gray-400 font-medium">Paid within</div>
-                <div className="text-lg font-extrabold text-gray-900">24 Hours</div>
-              </div>
-            </div>
-            <div className="absolute left-8 bottom-20 bg-white rounded-2xl shadow-xl border border-gray-100 px-4 py-3 flex items-center gap-3 z-20">
-              <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
-                <Star className="w-5 h-5 text-red-600" fill="currentColor" />
-              </div>
-              <div>
-                <div className="text-xs text-gray-400 font-medium">Customer rating</div>
-                <div className="text-lg font-extrabold text-gray-900">4.9 / 5.0</div>
-              </div>
-            </div>
             <div className="relative z-10">
               <div className="absolute inset-0 bg-gradient-to-t from-red-100/60 to-transparent rounded-[2.5rem] z-0" />
               <img
@@ -181,22 +157,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Stats bar */}
-        <div className="hidden md:block border-t border-gray-100 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 py-4 sm:py-5 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 text-center">
-            {[
-              { value: '50,000+', label: 'Phones Bought' },
-              { value: '£12M+', label: 'Paid to Customers' },
-              { value: '24hrs', label: 'Average Payout' },
-              { value: '4.9★', label: 'Trustpilot Rating' },
-            ].map(({ value, label }) => (
-              <div key={label} className="py-1">
-                <div className="text-xl sm:text-2xl font-extrabold text-gray-900">{value}</div>
-                <div className="text-gray-400 text-xs font-medium mt-0.5">{label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
       </section>
 
       {/* ── HOW IT WORKS ── */}
@@ -220,7 +180,7 @@ export default function Home() {
               { num: 1, icon: Smartphone, title: 'Select Device', desc: 'Choose your model and storage. Our instant calculator shows your exact price in seconds.', color: 'from-red-500 to-red-600', light: 'bg-red-50', iconColor: 'text-red-600' },
               { num: 2, icon: CheckCircle2, title: 'Accept Quote', desc: 'Happy with the price? Fill in your details and choose your preferred free postage method.', color: 'from-red-500 to-red-600', light: 'bg-red-50', iconColor: 'text-red-600' },
               { num: 3, icon: Box, title: 'Ship Your Phone', desc: 'Pack securely and drop at any post office. Your device is fully insured during transit.', color: 'from-blue-500 to-blue-600', light: 'bg-blue-50', iconColor: 'text-blue-600' },
-              { num: 4, icon: Wallet, title: 'Get Paid Fast', desc: 'We inspect and pay directly to your bank within 24 hours. No vouchers — just real cash.', color: 'from-green-500 to-green-600', light: 'bg-green-50', iconColor: 'text-green-600' },
+              { num: 4, icon: Wallet, title: 'Get Paid Fast', desc: 'We inspect and pay directly to your bank account. No vouchers — just real cash.', color: 'from-green-500 to-green-600', light: 'bg-green-50', iconColor: 'text-green-600' },
             ].map(({ num, icon: Icon, title, desc, color, light, iconColor }) => (
               <div key={num} className="relative z-10 group">
                 <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full">
@@ -237,169 +197,232 @@ export default function Home() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
 
-          {/* Info strip */}
-          <div className="mt-6 sm:mt-10 grid sm:grid-cols-2 gap-4 sm:gap-5">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 flex items-start sm:items-center gap-3 sm:gap-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-50 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0">
-                <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
-              </div>
-              <div>
-                <h4 className="font-bold text-gray-900 mb-0.5 sm:mb-1 text-sm sm:text-base">Lightning Fast Payment</h4>
-                <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">We process payments within 24 hours of receiving your device. Most customers get paid the very next day via bank transfer.</p>
-              </div>
-            </div>
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 flex items-start sm:items-center gap-3 sm:gap-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-50 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0">
-                <Lock className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
-              </div>
-              <div>
-                <h4 className="font-bold text-gray-900 mb-0.5 sm:mb-1 text-sm sm:text-base">Your Data is Safe</h4>
-                <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">We use military-grade data wiping procedures to ensure all your personal information is permanently erased from your device.</p>
-              </div>
-            </div>
+      {/* ── SELECT BY BRANDS ── */}
+      <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 md:px-12 bg-gradient-to-b from-white via-gray-50/50 to-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-900 mb-2 sm:mb-3">
+              Select By <span className="text-red-600">Brands</span>
+            </h2>
+            <p className="text-sm sm:text-base text-gray-500 max-w-2xl mx-auto px-4">
+              Choose your device brand to see instant prices and get paid quickly
+            </p>
           </div>
 
-          <div className="mt-8 sm:mt-12 flex flex-col items-center gap-3 sm:gap-4">
-            <Link to="/sell" className="w-full sm:w-auto">
-              <button className="w-full sm:w-auto group bg-red-600 hover:bg-red-700 text-white px-8 sm:px-10 py-3.5 sm:py-4 rounded-2xl font-bold text-base sm:text-lg flex items-center justify-center gap-2 transition-all shadow-xl shadow-red-200 hover:-translate-y-0.5">
-                Get Your Quote Now
-                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
-              </button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 md:gap-8">
+            {/* Apple Card */}
+            <Link to="/sell?brand=apple" className="group">
+              <div className="relative bg-white rounded-2xl sm:rounded-3xl border border-gray-200 overflow-hidden transition-all duration-500 hover:border-red-300 hover:shadow-2xl hover:shadow-red-100/50 hover:-translate-y-1">
+                {/* Gradient Background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-50/50 via-white to-gray-50/50" />
+                
+                {/* Content */}
+                <div className="relative p-5 sm:p-6 md:p-8">
+                  {/* Apple Logo */}
+                  <div className="flex justify-center mb-4 sm:mb-5">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-gray-900 to-black rounded-xl sm:rounded-2xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
+                      <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Phone Image */}
+                  <div className="relative h-40 sm:h-48 md:h-52 mb-4 sm:mb-5 flex items-center justify-center px-2">
+                    <img 
+                      src="https://sellyourfone.co.uk/wp-content/uploads/2024/08/apple-phones-67e692ff-1-595x364.webp"
+                      alt="Apple iPhones"
+                      className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500 drop-shadow-xl"
+                    />
+                  </div>
+
+                  {/* Text & CTA */}
+                  <div className="text-center">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 group-hover:text-red-600 transition-colors">
+                      Sell my Apple iPhone
+                    </h3>
+                    <div className="inline-flex items-center gap-2 bg-red-600 group-hover:bg-red-700 text-white font-semibold px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl transition-all shadow-md shadow-red-200 group-hover:shadow-lg">
+                      <span className="text-sm">Get Instant Quote</span>
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Decorative Elements */}
+                <div className="absolute top-6 right-6 w-16 h-16 bg-gradient-to-br from-red-500/5 to-pink-500/5 rounded-full blur-xl" />
+                <div className="absolute bottom-6 left-6 w-20 h-20 bg-gradient-to-br from-gray-500/5 to-slate-500/5 rounded-full blur-xl" />
+              </div>
             </Link>
-            <div className="flex flex-wrap justify-center items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-400 font-medium">
-              <span>Free instant quote</span><span>•</span>
-              <span>No obligation</span><span>•</span>
-              <span>Get paid in 24 hours</span>
-            </div>
+
+            {/* Samsung Card */}
+            <Link to="/sell?brand=samsung" className="group">
+              <div className="relative bg-white rounded-2xl sm:rounded-3xl border border-gray-200 overflow-hidden transition-all duration-500 hover:border-red-300 hover:shadow-2xl hover:shadow-red-100/50 hover:-translate-y-1">
+                {/* Gradient Background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-50/20 via-white to-indigo-50/20" />
+                
+                {/* Content */}
+                <div className="relative p-5 sm:p-6 md:p-8">
+                  {/* Samsung Logo */}
+                  <div className="flex justify-center mb-4 sm:mb-5">
+                    <div className="h-10 sm:h-12 px-4 sm:px-5 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
+                      <span className="text-white font-bold text-base sm:text-lg tracking-wider">SAMSUNG</span>
+                    </div>
+                  </div>
+
+                  {/* Phone Image */}
+                  <div className="relative h-40 sm:h-48 md:h-52 mb-4 sm:mb-5 flex items-center justify-center px-2">
+                    <img 
+                      src="https://sellyourfone.co.uk/wp-content/uploads/2024/08/samsung-phones-d86ef8cf-1-595x364.webp"
+                      alt="Samsung Galaxy Phones"
+                      className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500 drop-shadow-xl"
+                    />
+                  </div>
+
+                  {/* Text & CTA */}
+                  <div className="text-center">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 group-hover:text-red-600 transition-colors">
+                      Sell my Samsung Galaxy
+                    </h3>
+                    <div className="inline-flex items-center gap-2 bg-red-600 group-hover:bg-red-700 text-white font-semibold px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl transition-all shadow-md shadow-red-200 group-hover:shadow-lg">
+                      <span className="text-sm">Get Instant Quote</span>
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Decorative Elements */}
+                <div className="absolute top-6 right-6 w-16 h-16 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 rounded-full blur-xl" />
+                <div className="absolute bottom-6 left-6 w-20 h-20 bg-gradient-to-br from-purple-500/5 to-indigo-500/5 rounded-full blur-xl" />
+              </div>
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* ── WHY CHOOSE US ── */}
+      {/* ── POPULAR DEVICES ── */}
       <section className="py-14 sm:py-20 md:py-24 px-4 sm:px-6 md:px-12 bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-10 sm:mb-16">
-            <div className="inline-flex items-center gap-2 bg-red-50 text-red-700 text-xs font-bold px-4 py-2 rounded-full mb-4">
-              <BadgeCheck className="w-3.5 h-3.5" /> Why We're Different
+          {/* Apple Devices */}
+          <div className="mb-16">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
+                Popular <span className="text-red-600">Apple</span> Devices
+              </h2>
+              <Link to="/sell?brand=apple" className="flex items-center gap-1 text-red-600 font-semibold text-sm hover:gap-2 transition-all">
+                View All <ArrowRight className="w-4 h-4" />
+              </Link>
             </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-900 mb-3 sm:mb-4">Why Choose Cash My Mobile?</h2>
-            <p className="text-base sm:text-lg text-gray-500 max-w-xl mx-auto px-2">
-              We're not just another phone buying service. Here's what makes us the UK's most trusted.
-            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+              {[
+                { name: 'iPhone 16 Pro Max', price: '£850', image: 'https://storage.googleapis.com/atomjuice-product-images/apple/iphone-16-pro-max/default.png' },
+                { name: 'iPhone 16 Pro', price: '£750', image: 'https://storage.googleapis.com/atomjuice-product-images/apple/iphone-16-pro/default.png' },
+                { name: 'iPhone 16 Plus', price: '£650', image: 'https://storage.googleapis.com/atomjuice-product-images/apple/iphone-16-plus/default.png' },
+                { name: 'iPhone 16', price: '£550', image: 'https://storage.googleapis.com/atomjuice-product-images/apple/iphone-16/default.png' },
+                { name: 'iPhone 15 Pro Max', price: '£720', image: 'https://storage.googleapis.com/atomjuice-product-images/apple/iphone-15-pro-max/default.png' },
+                { name: 'iPhone 15 Pro', price: '£620', image: 'https://storage.googleapis.com/atomjuice-product-images/apple/iphone-15-pro/default.png' },
+              ].map((device) => (
+                <Link to={`/sell?device=${encodeURIComponent(device.name)}`} key={device.name}>
+                  <div className="group bg-white border-2 border-gray-100 rounded-2xl p-4 hover:border-red-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                    <div className="bg-gray-50 rounded-xl p-4 mb-3 flex items-center justify-center h-32 sm:h-40">
+                      <img 
+                        src={device.image} 
+                        alt={device.name}
+                        className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://via.placeholder.com/200x300/f3f4f6/6b7280?text=' + encodeURIComponent(device.name);
+                        }}
+                      />
+                    </div>
+                    <h3 className="font-bold text-gray-900 text-xs sm:text-sm mb-2 text-center leading-tight">{device.name}</h3>
+                    <div className="text-center">
+                      <span className="text-red-600 font-extrabold text-sm sm:text-base">{device.price}</span>
+                      <span className="text-gray-400 text-xs ml-1">from</span>
+                    </div>
+                    <button className="w-full mt-3 bg-red-50 text-red-600 font-semibold text-xs py-2 rounded-lg group-hover:bg-red-600 group-hover:text-white transition-all">
+                      Get Quote
+                    </button>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 text-left">
-            {[
-              { icon: TrendingUp, title: 'Best Prices Guaranteed', desc: 'We offer competitive prices that beat most competitors. Get the true value of your device — we price match any genuine quote.', bg: 'bg-blue-50', color: 'text-blue-600', border: 'hover:border-blue-200', tag: 'Price Match' },
-              { icon: Clock, title: 'Paid in 24 Hours', desc: 'Get paid within 24 hours of us receiving your device. Direct bank transfer — no vouchers, no gift cards, just real cash.', bg: 'bg-red-50', color: 'text-red-600', border: 'hover:border-red-200', tag: 'Lightning Fast' },
-              { icon: ShieldCheck, title: 'Safe & Secure', desc: "Your data is wiped using military-grade methods. We're fully certified, insured, and compliant with UK data protection laws.", bg: 'bg-red-50', color: 'text-red-600', border: 'hover:border-red-200', tag: 'Certified' },
-              { icon: BadgeCheck, title: 'Trusted Service', desc: 'Thousands of happy customers across the UK. Transparent pricing, honest assessments, and no hidden fees — ever.', bg: 'bg-green-50', color: 'text-green-600', border: 'hover:border-green-200', tag: '4.9★ Rated' },
-              { icon: Lock, title: 'Data Protection', desc: 'We ensure all your personal data is completely and permanently erased from your device before it leaves our facility.', bg: 'bg-amber-50', color: 'text-amber-600', border: 'hover:border-amber-200', tag: 'GDPR Compliant' },
-              { icon: HeadphonesIcon, title: 'Expert Support', desc: 'Our friendly UK-based team is here to help at every step. Questions? We\'re just a call or email away — always.', bg: 'bg-rose-50', color: 'text-rose-600', border: 'hover:border-rose-200', tag: 'UK Based' },
-            ].map(({ icon: Icon, title, desc, bg, color, border, tag }) => (
-              <div key={title} className={`group p-5 sm:p-8 rounded-2xl sm:rounded-3xl bg-gray-50 border-2 border-transparent ${border} hover:bg-white hover:shadow-xl transition-all duration-300 hover:-translate-y-1`}>
-                <div className="flex items-start justify-between mb-4 sm:mb-6">
-                  <div className={`w-11 h-11 sm:w-14 sm:h-14 ${bg} ${color} rounded-xl sm:rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 flex-shrink-0`}>
-                    <Icon className="w-5 h-5 sm:w-7 sm:h-7" />
+          {/* Samsung Devices */}
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
+                Popular <span className="text-red-600">Samsung</span> Devices
+              </h2>
+              <Link to="/sell?brand=samsung" className="flex items-center gap-1 text-red-600 font-semibold text-sm hover:gap-2 transition-all">
+                View All <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+              {[
+                { name: 'Galaxy S24 Ultra', price: '£680', image: 'https://storage.googleapis.com/atomjuice-product-images/samsung/galaxy-s24-ultra/default.png' },
+                { name: 'Galaxy S24 Plus', price: '£580', image: 'https://storage.googleapis.com/atomjuice-product-images/samsung/galaxy-s24-plus/default.png' },
+                { name: 'Galaxy S24', price: '£480', image: 'https://storage.googleapis.com/atomjuice-product-images/samsung/galaxy-s24/default.png' },
+                { name: 'Galaxy S23 Ultra', price: '£550', image: 'https://storage.googleapis.com/atomjuice-product-images/samsung/galaxy-s23-ultra/default.png' },
+                { name: 'Galaxy Z Fold 5', price: '£720', image: 'https://storage.googleapis.com/atomjuice-product-images/samsung/galaxy-z-fold-5/default.png' },
+                { name: 'Galaxy Z Flip 5', price: '£520', image: 'https://storage.googleapis.com/atomjuice-product-images/samsung/galaxy-z-flip-5/default.png' },
+              ].map((device) => (
+                <Link to={`/sell?device=${encodeURIComponent(device.name)}`} key={device.name}>
+                  <div className="group bg-white border-2 border-gray-100 rounded-2xl p-4 hover:border-red-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                    <div className="bg-gray-50 rounded-xl p-4 mb-3 flex items-center justify-center h-32 sm:h-40">
+                      <img 
+                        src={device.image} 
+                        alt={device.name}
+                        className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://via.placeholder.com/200x300/f3f4f6/6b7280?text=' + encodeURIComponent(device.name);
+                        }}
+                      />
+                    </div>
+                    <h3 className="font-bold text-gray-900 text-xs sm:text-sm mb-2 text-center leading-tight">{device.name}</h3>
+                    <div className="text-center">
+                      <span className="text-red-600 font-extrabold text-sm sm:text-base">{device.price}</span>
+                      <span className="text-gray-400 text-xs ml-1">from</span>
+                    </div>
+                    <button className="w-full mt-3 bg-red-50 text-red-600 font-semibold text-xs py-2 rounded-lg group-hover:bg-red-600 group-hover:text-white transition-all">
+                      Get Quote
+                    </button>
                   </div>
-                  <span className={`text-xs font-bold ${bg} ${color} px-2.5 sm:px-3 py-1 rounded-full whitespace-nowrap ml-2`}>{tag}</span>
-                </div>
-                <h3 className="text-base sm:text-xl font-extrabold mb-2 sm:mb-3 text-gray-900">{title}</h3>
-                <p className="text-gray-500 leading-relaxed text-xs sm:text-sm">{desc}</p>
-              </div>
-            ))}
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── TESTIMONIALS ── */}
-      <section id="faq" className="py-14 sm:py-20 md:py-24 px-4 sm:px-6 md:px-12 bg-gray-50">
+      {/* ── OUR VALUES ── */}
+      <section className="py-14 sm:py-20 md:py-24 px-4 sm:px-6 md:px-12 bg-gray-50">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-10 sm:mb-16">
-            <div className="inline-flex items-center gap-2 bg-yellow-50 text-yellow-600 text-xs font-bold px-4 py-2 rounded-full mb-4">
-              <Star className="w-3.5 h-3.5" fill="currentColor" /> 4.9 / 5.0 Average Rating
-            </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-900 mb-3 sm:mb-4">What Our Customers Say</h2>
-            <p className="text-base sm:text-lg text-gray-500 max-w-xl mx-auto px-2">
-              Don't just take our word for it. Here's what real customers think about us.
-            </p>
+          <div className="text-center mb-10 sm:mb-14">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-900">
+              Our <span className="text-red-600">Values</span>
+            </h2>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
             {[
-              { name: 'Sarah Johnson', location: 'London', initials: 'SJ', color: 'bg-red-600', quote: 'Absolutely brilliant service! Got £850 for my iPhone 15 Pro Max. The whole process took less than 3 days from quote to payment. Highly recommend!', device: 'iPhone 15 Pro Max', earned: '£850' },
-              { name: 'Michael Chen', location: 'Manchester', initials: 'MC', color: 'bg-red-500', quote: 'I was skeptical at first, but Cash My Mobile exceeded my expectations. Fair price, fast payment, and excellent customer service. Will definitely use again.', device: 'Samsung Galaxy S24', earned: '£620' },
-              { name: 'Emma Williams', location: 'Birmingham', initials: 'EW', color: 'bg-green-600', quote: 'Sold my old iPhone 12 that I thought was worthless. Got £250! The free postage label made it so easy. Payment came through the next day.', device: 'iPhone 12', earned: '£250' },
-            ].map(({ name, location, initials, color, quote, device, earned }) => (
-              <div key={name} className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col">
-                {/* Stars */}
-                <div className="flex gap-1 mb-4 sm:mb-5">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} fill="currentColor" className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" />
-                  ))}
+              { icon: Zap, title: 'INSTANT QUOTES', desc: 'Get competitive prices for your phone in under 60 seconds.' },
+              { icon: DollarSign, title: 'FAST PAYMENTS', desc: 'Bank transfer sent promptly after receiving your device.' },
+              { icon: ThumbsUp, title: 'BEST PRICES', desc: 'We price match any genuine quote — guaranteed top value.' },
+              { icon: Truck, title: 'FREE SHIPPING', desc: 'Free prepaid postage label or packaging kit sent to you.' },
+              { icon: Infinity, title: 'EASY PROCESS', desc: '4 simple steps from quote to payment — no hassle.' },
+              { icon: ShieldCheck, title: 'SECURE TRANSACTIONS', desc: 'Military-grade data wiping and encrypted payments.' },
+            ].map(({ icon: Icon, title, desc }) => (
+              <div key={title} className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 text-center shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-5 shadow-lg shadow-red-200">
+                  <Icon className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                 </div>
-
-                {/* Quote */}
-                <p className="text-gray-700 leading-relaxed mb-4 sm:mb-6 flex-1 text-xs sm:text-sm">
-                  &ldquo;{quote}&rdquo;
-                </p>
-
-                {/* Device badge */}
-                <div className="bg-red-50 rounded-xl px-3 py-2 flex items-center justify-between mb-4 sm:mb-6">
-                  <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                    <Smartphone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500 flex-shrink-0" />
-                    <span className="text-xs font-semibold text-red-700 truncate">{device}</span>
-                  </div>
-                  <span className="text-sm font-extrabold text-green-600 flex-shrink-0 ml-2">{earned}</span>
-                </div>
-
-                {/* Author */}
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className={`w-9 h-9 sm:w-10 sm:h-10 ${color} rounded-full flex items-center justify-center text-white text-xs sm:text-sm font-bold flex-shrink-0`}>
-                    {initials}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-bold text-gray-900 text-xs sm:text-sm truncate">{name}</div>
-                    <div className="text-xs text-gray-500">{location}</div>
-                  </div>
-                  <div className="ml-auto flex-shrink-0">
-                    <BadgeCheck className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
-                  </div>
-                </div>
+                <h3 className="text-base sm:text-lg font-extrabold text-gray-900 mb-2">{title}</h3>
+                <p className="text-sm text-gray-600 leading-relaxed">{desc}</p>
               </div>
             ))}
-          </div>
-
-          {/* Rating summary */}
-          <div className="mt-6 sm:mt-10 bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm p-5 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-5 sm:gap-6">
-            <div className="text-center md:text-left">
-              <div className="text-4xl sm:text-5xl font-extrabold text-gray-900">4.9</div>
-              <div className="flex gap-1 mt-2 justify-center md:justify-start">
-                {[...Array(5)].map((_, i) => <Star key={i} fill="currentColor" className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" />)}
-              </div>
-              <div className="text-xs sm:text-sm text-gray-500 mt-1">Based on 2,400+ reviews</div>
-            </div>
-            <div className="hidden md:block w-px h-16 bg-gray-100" />
-            <div className="grid grid-cols-3 gap-4 sm:gap-8 text-center w-full md:w-auto">
-              {[
-                { pct: '94%', label: '5-star reviews' },
-                { pct: '98%', label: 'Would recommend' },
-                { pct: '99%', label: 'Paid on time' },
-              ].map(({ pct, label }) => (
-                <div key={label}>
-                  <div className="text-xl sm:text-2xl font-extrabold text-red-600">{pct}</div>
-                  <div className="text-xs text-gray-500 mt-1">{label}</div>
-                </div>
-              ))}
-            </div>
-            <div className="hidden md:block w-px h-16 bg-gray-100" />
-            <Link to="/sell" className="w-full md:w-auto">
-              <button className="w-full md:w-auto group bg-red-600 hover:bg-red-700 text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-200 whitespace-nowrap hover:-translate-y-0.5 text-sm sm:text-base">
-                Join Them Today
-                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
-              </button>
-            </Link>
           </div>
         </div>
       </section>
@@ -436,7 +459,7 @@ export default function Home() {
           <div className="flex flex-wrap justify-center gap-4 sm:gap-6 mt-7 sm:mt-10">
             {[
               { icon: ShieldCheck, text: 'Free & Secure', color: 'text-red-500' },
-              { icon: Clock, text: 'Paid in 24 Hours', color: 'text-red-600' },
+              { icon: Clock, text: 'Fast Bank Transfer', color: 'text-red-600' },
               { icon: Lock, text: 'Data Wiped', color: 'text-red-500' },
               { icon: BadgeCheck, text: 'No Hidden Fees', color: 'text-red-500' },
             ].map(({ icon: Icon, text, color }) => (

@@ -55,7 +55,7 @@ const categories = [
     faqs: [
       {
         q: 'How long does the whole process take?',
-        a: 'From getting your quote to receiving payment typically takes 2–5 days. Once we receive your device, payment is processed within 24 hours via bank transfer.',
+        a: 'From getting your quote to receiving payment typically takes 2–5 days. Once we receive your device, payment is processed promptly via bank transfer.',
       },
       {
         q: 'What condition categories do you accept?',
@@ -83,7 +83,7 @@ const categories = [
     faqs: [
       {
         q: 'How will I receive payment?',
-        a: "Payment is made via UK bank transfer directly to your account within 24 hours of receiving and inspecting your device. You'll need to provide your account name, sort code, and account number.",
+        a: "Payment is made via UK bank transfer directly to your account promptly after receiving and inspecting your device. You'll need to provide your account name, sort code, and account number.",
       },
       {
         q: 'What payment methods do you use?',
@@ -194,7 +194,7 @@ export default function FAQ() {
           {[
             { value: '50,000+', label: 'Phones Bought' },
             { value: '£12M+', label: 'Paid to Customers' },
-            { value: '24hrs', label: 'Average Payout' },
+            { value: 'Fast', label: 'Bank Transfer' },
             { value: '4.9★', label: 'Trustpilot Rating' },
           ].map(({ value, label }) => (
             <div key={label} className="bg-white sm:bg-transparent rounded-xl sm:rounded-none p-2 sm:p-0 border border-gray-100 sm:border-0">
@@ -302,7 +302,7 @@ export default function FAQ() {
           <div className="grid grid-cols-2 gap-3 sm:gap-5">
             {[
               { icon: ShieldCheck, title: 'Secure & Certified', desc: 'Fully certified UK service', color: 'text-red-600', bg: 'bg-red-50' },
-              { icon: Clock, title: 'Paid in 24 Hours', desc: 'Direct bank transfer', color: 'text-green-600', bg: 'bg-green-50' },
+              { icon: Clock, title: 'Fast Payment', desc: 'Direct bank transfer', color: 'text-green-600', bg: 'bg-green-50' },
               { icon: Lock, title: 'Data Wiped', desc: 'Military-grade erasure', color: 'text-red-600', bg: 'bg-red-50' },
               { icon: BadgeCheck, title: 'No Hidden Fees', desc: 'Transparent pricing', color: 'text-blue-600', bg: 'bg-blue-50' },
             ].map(({ icon: Icon, title, desc, color, bg }) => (
@@ -332,7 +332,7 @@ export default function FAQ() {
             <span className="text-red-600">Into Cash?</span>
           </h2>
           <p className="text-gray-500 text-sm sm:text-lg mb-7 sm:mb-10 max-w-xl mx-auto px-2">
-            Get your instant quote in less than 60 seconds. No obligation, free postage, paid in 24 hours.
+            Get your instant quote in less than 60 seconds. No obligation, free postage, fast bank transfer.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4 sm:px-0">
             <Link to="/sell" className="w-full sm:w-auto">
@@ -350,7 +350,7 @@ export default function FAQ() {
           <div className="flex flex-wrap justify-center gap-3 sm:gap-6 mt-7 sm:mt-10 px-2 sm:px-0">
             {[
               { icon: ShieldCheck, text: 'Free & Secure' },
-              { icon: Clock, text: 'Paid in 24 Hours' },
+              { icon: Clock, text: 'Fast Bank Transfer' },
               { icon: Lock, text: 'Data Wiped' },
               { icon: BadgeCheck, text: 'No Hidden Fees' },
             ].map(({ icon: Icon, text }) => (

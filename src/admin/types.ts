@@ -83,7 +83,7 @@ export interface PayoutDetails {
 // ─── Order ───────────────────────────────────────────────────────────────────
 export interface Order {
   id: string;
-  orderId: string;
+  orderNumber: string;
   source: OrderSource;
   status: OrderStatus;
   createdAt: string;
@@ -160,6 +160,8 @@ export interface UtilityItem {
   name: string;
   sortOrder: number;
   isActive: boolean;
+  color?: string;
+  value?: string;
 }
 
 export interface UtilityStore {
@@ -180,7 +182,7 @@ export interface ApiRequestLog {
   method: string;
   statusCode: number;
   success: boolean;
-  orderId?: string;
+  orderNumber?: string;
   payload: string;
   error?: string;
   responseTime: number;

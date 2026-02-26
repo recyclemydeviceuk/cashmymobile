@@ -14,6 +14,7 @@ import {
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { contactApi } from '../api';
 
 type FormState = {
   name: string;
@@ -43,18 +44,37 @@ export default function Contact() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    setError(''); // Clear error on input change
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
+    setError('');
+
+    try {
+      const response = await contactApi.submitContactForm({
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        subject: form.subject,
+        message: form.message,
+      });
+
+      if (response.success) {
+        setSubmitted(true);
+      } else {
+        setError(response.message || 'Failed to send message. Please try again.');
+      }
+    } catch (err) {
+      setError('An error occurred. Please try again later.');
+    } finally {
       setLoading(false);
-      setSubmitted(true);
-    }, 1200);
+    }
   };
 
   const inputClass = 'w-full bg-gray-50 border border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all';
@@ -94,18 +114,18 @@ export default function Contact() {
               {
                 icon: Mail,
                 title: 'Email Us',
-                value: 'hello@cashmymobile.co.uk',
+                value: 'Support@cashmymobile.co.uk',
                 sub: 'We reply within a few hours',
-                href: 'mailto:hello@cashmymobile.co.uk',
+                href: 'mailto:Support@cashmymobile.co.uk',
                 bg: 'bg-red-50',
                 color: 'text-red-600',
               },
               {
                 icon: Phone,
                 title: 'Call Us',
-                value: '+44 20 7123 4567',
+                value: '03332244018',
                 sub: 'Mon–Fri, 9am–6pm',
-                href: 'tel:+442071234567',
+                href: 'tel:03332244018',
                 bg: 'bg-green-50',
                 color: 'text-green-600',
               },
@@ -257,6 +277,13 @@ export default function Contact() {
                       <Link to="/privacy" className="text-red-600 hover:underline font-medium">Privacy Policy</Link>.
                     </p>
                   </div>
+
+                  {/* Error message */}
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-3 sm:p-4">
+                      <p className="text-xs sm:text-sm text-red-600 font-medium">{error}</p>
+                    </div>
+                  )}
 
                   <button
                     type="submit"

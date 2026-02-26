@@ -15,6 +15,7 @@ import AdminDashboard from './admin/pages/AdminDashboard';
 import AdminOrders from './admin/pages/AdminOrders';
 import AdminOrderDetail from './admin/pages/AdminOrderDetail';
 import AdminDevices from './admin/pages/AdminDevices';
+import AdminDeviceForm from './admin/pages/AdminDeviceForm';
 import AdminPricing from './admin/pages/AdminPricing';
 import AdminUtilities from './admin/pages/AdminUtilities';
 import AdminApiGateway from './admin/pages/AdminApiGateway';
@@ -41,6 +42,8 @@ function App() {
           <Route path="/admin-cashmymobile/orders" element={<AdminGuard><AdminOrders /></AdminGuard>} />
           <Route path="/admin-cashmymobile/orders/:id" element={<AdminGuard><AdminOrderDetail /></AdminGuard>} />
           <Route path="/admin-cashmymobile/devices" element={<AdminGuard><AdminDevices /></AdminGuard>} />
+          <Route path="/admin-cashmymobile/devices/new" element={<AdminGuard><AdminDeviceForm /></AdminGuard>} />
+          <Route path="/admin-cashmymobile/devices/edit/:id" element={<AdminGuard><AdminDeviceForm /></AdminGuard>} />
           <Route path="/admin-cashmymobile/pricing" element={<AdminGuard><AdminPricing /></AdminGuard>} />
           <Route path="/admin-cashmymobile/utilities" element={<AdminGuard><AdminUtilities /></AdminGuard>} />
           <Route path="/admin-cashmymobile/api-gateway" element={<AdminGuard><AdminApiGateway /></AdminGuard>} />

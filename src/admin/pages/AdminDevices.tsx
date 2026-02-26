@@ -1,21 +1,25 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Plus, Search, Pencil, Trash2, Smartphone, X, Save, AlertCircle,
-  ToggleLeft, ToggleRight, ChevronDown, Upload, Image,
+  Plus, Search, Pencil, Trash2, Smartphone,
+  ToggleLeft, ToggleRight, ChevronDown, Download, Upload, Loader2,
 } from 'lucide-react';
 import AdminLayout from '../AdminLayout';
 import { useAdmin } from '../AdminContext';
-import type { Device } from '../types';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 
 export default function AdminDevices() {
+  const navigate = useNavigate();
   const { 
-    devices, addDevice, updateDevice, deleteDevice
+    devices, updateDevice, deleteDevice, addDevice, loadingDevices, loadMoreDevices, devicesHasMore
   } = useAdmin();
   const [search, setSearch] = useState('');
   const [brandFilter, setBrandFilter] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [editing, setEditing] = useState<Device | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importSuccess, setImportSuccess] = useState<number | null>(null);
 
   const filtered = useMemo(() => {
     return devices.filter(d => {
@@ -30,6 +34,263 @@ export default function AdminDevices() {
 
   const brands = [...new Set(devices.map(d => d.brand))].sort();
 
+  const sentinelRef = useInfiniteScroll({
+    onLoadMore: loadMoreDevices,
+    hasMore: devicesHasMore,
+    loading: loadingDevices,
+    threshold: 200,
+  });
+
+  // Export devices to CSV
+  const handleExport = () => {
+    // Get all unique storage options across all devices
+    const storageSet = new Set<string>();
+    devices.forEach(device => {
+      device.defaultPricing?.forEach(pricing => {
+        storageSet.add(pricing.storage);
+      });
+    });
+    const storages = Array.from(storageSet).sort();
+
+    const conditions = [
+      { name: 'New / Mint', key: 'gradeNew' },
+      { name: 'Good', key: 'gradeGood' },
+      { name: 'Broken / Faulty', key: 'gradeBroken' }
+    ];
+
+    // Headers: base fields + Network + Storage-Condition columns
+    const baseHeaders = ['Brand', 'Model Name', 'Category', 'Image URL', 'Is Active', 'Network'];
+    const pricingHeaders: string[] = [];
+    storages.forEach(storage => {
+      conditions.forEach(condition => {
+        pricingHeaders.push(`${storage} - ${condition.name}`);
+      });
+    });
+    const headers = [...baseHeaders, ...pricingHeaders];
+
+    // One row per device per network
+    const rows: string[][] = [];
+    devices.forEach(device => {
+      // Group pricing by network
+      const networkMap = new Map<string, typeof device.defaultPricing>();
+      device.defaultPricing?.forEach(pricing => {
+        if (!networkMap.has(pricing.network)) networkMap.set(pricing.network, []);
+        networkMap.get(pricing.network)!.push(pricing);
+      });
+
+      if (networkMap.size === 0) {
+        // No pricing — still export the device row with empty pricing
+        const baseRow = [
+          device.brand, device.name, device.category,
+          device.imageUrl || '', device.isActive ? 'true' : 'false', ''
+        ];
+        const pricingRow = pricingHeaders.map(() => '');
+        rows.push([...baseRow, ...pricingRow]);
+      } else {
+        networkMap.forEach((pricingList, network) => {
+          const baseRow = [
+            device.brand, device.name, device.category,
+            device.imageUrl || '', device.isActive ? 'true' : 'false', network
+          ];
+          const pricingRow: string[] = [];
+          storages.forEach(storage => {
+            conditions.forEach(condition => {
+              const entry = (pricingList ?? []).find(p => p.storage === storage);
+              const value = entry ? entry[condition.key as keyof typeof entry] || '' : '';
+              pricingRow.push(String(value));
+            });
+          });
+          rows.push([...baseRow, ...pricingRow]);
+        });
+      }
+    });
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `devices_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Import devices from CSV
+  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    setImportError(null);
+    setImportSuccess(null);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = (e.target?.result as string).replace(/\r/g, '');
+        const lines = text.split('\n').filter(line => line.trim());
+        
+        if (lines.length < 2) {
+          throw new Error('CSV file is empty or has no data rows');
+        }
+
+        // Parse header row to identify pricing columns
+        const headerLine = lines[0];
+        const headerRegex = /(?:^|,)("(?:[^"]|"")*"|[^,]*)/g;
+        const headers: string[] = [];
+        let headerMatch;
+        while ((headerMatch = headerRegex.exec(headerLine)) !== null) {
+          if (headerMatch[1] !== undefined) {
+            let value = headerMatch[1];
+            if (value.startsWith('"') && value.endsWith('"')) {
+              value = value.slice(1, -1).replace(/""/g, '"');
+            }
+            headers.push(value.trim());
+          }
+        }
+
+        // Identify base field indices
+        const brandIdx = headers.findIndex(h => h.toLowerCase() === 'brand');
+        const nameIdx = headers.findIndex(h => h.toLowerCase().includes('model name'));
+        const categoryIdx = headers.findIndex(h => h.toLowerCase() === 'category');
+        const imageUrlIdx = headers.findIndex(h => h.toLowerCase().includes('image url'));
+        const isActiveIdx = headers.findIndex(h => h.toLowerCase().includes('is active'));
+        const networkIdx = headers.findIndex(h => h.toLowerCase() === 'network');
+
+        if (brandIdx === -1 || nameIdx === -1 || categoryIdx === -1) {
+          throw new Error('CSV must have Brand, Model Name, and Category columns');
+        }
+
+        // Find pricing columns — support "Storage - Condition" (new format with separate Network column)
+        const pricingColumns: Array<{ index: number; storage: string; field: string }> = [];
+        headers.forEach((header, idx) => {
+          const match = header.match(/^(.+?)\s*-\s*(.+)$/);
+          if (match) {
+            const part1 = match[1].trim();
+            const part2 = match[2].trim();
+            // Must look like a storage size (contains GB or TB)
+            if (/\d+\s*(GB|TB)/i.test(part1)) {
+              let field = '';
+              if (part2.toLowerCase().includes('new') || part2.toLowerCase().includes('mint')) {
+                field = 'gradeNew';
+              } else if (part2.toLowerCase().includes('good')) {
+                field = 'gradeGood';
+              } else if (part2.toLowerCase().includes('broken') || part2.toLowerCase().includes('faulty')) {
+                field = 'gradeBroken';
+              }
+              if (field) {
+                pricingColumns.push({ index: idx, storage: part1, field });
+              }
+            }
+          }
+        });
+
+        // Parse CSV line helper
+        const parseLine = (line: string): string[] => {
+          const regex = /(?:^|,)("(?:[^"]|"")*"|[^,]*)/g;
+          const vals: string[] = [];
+          let m;
+          while ((m = regex.exec(line)) !== null) {
+            if (m[1] !== undefined) {
+              let v = m[1];
+              if (v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1).replace(/""/g, '"');
+              vals.push(v);
+            }
+          }
+          return vals;
+        };
+
+        // Group rows by device key (brand|name) so multiple network rows merge into one device
+        const deviceMap = new Map<string, {
+          brand: string; name: string; category: string;
+          imageUrl: string; isActive: boolean;
+          pricingMap: Map<string, { network: string; storage: string; gradeNew: number; gradeGood: number; gradeBroken: number }>;
+        }>();
+
+        const dataLines = lines.slice(1);
+
+        dataLines.forEach(line => {
+          const values = parseLine(line);
+          if (values.length <= Math.max(brandIdx, nameIdx, categoryIdx)) return;
+
+          const brand = values[brandIdx] || 'Unknown';
+          const name = values[nameIdx] || 'Unnamed Device';
+          const category = values[categoryIdx] || 'Uncategorized';
+          const imageUrl = imageUrlIdx >= 0 ? values[imageUrlIdx] || '' : '';
+          const isActiveStr = isActiveIdx >= 0 ? values[isActiveIdx] : 'true';
+          const network = networkIdx >= 0 ? (values[networkIdx] || 'Unlocked') : 'Unlocked';
+
+          const deviceKey = `${brand}|${name}`;
+          if (!deviceMap.has(deviceKey)) {
+            deviceMap.set(deviceKey, {
+              brand, name, category, imageUrl,
+              isActive: isActiveStr.toLowerCase() === 'true',
+              pricingMap: new Map(),
+            });
+          }
+          const deviceEntry = deviceMap.get(deviceKey)!;
+
+          // Build pricing for this row's network
+          pricingColumns.forEach(({ index, storage, field }) => {
+            const val = values[index];
+            if (val && val.trim()) {
+              const price = parseFloat(val);
+              if (!isNaN(price) && price > 0) {
+                const key = `${network}|${storage}`;
+                if (!deviceEntry.pricingMap.has(key)) {
+                  deviceEntry.pricingMap.set(key, { network, storage, gradeNew: 0, gradeGood: 0, gradeBroken: 0 });
+                }
+                (deviceEntry.pricingMap.get(key) as any)[field] = price;
+              }
+            }
+          });
+        });
+
+        let imported = 0;
+
+        deviceMap.forEach(({ brand, name, category, imageUrl, isActive, pricingMap: pm }) => {
+          const defaultPricing = Array.from(pm.values()).filter(p =>
+            p.gradeNew > 0 || p.gradeGood > 0 || p.gradeBroken > 0
+          );
+          addDevice({
+            brand,
+            name,
+            fullName: `${brand} ${name}`,
+            category,
+            imageUrl: imageUrl || undefined,
+            isActive,
+            defaultPricing: defaultPricing.length > 0 ? defaultPricing : undefined
+          });
+          imported++;
+        });
+
+        setImportSuccess(imported);
+        setTimeout(() => setImportSuccess(null), 5000);
+      } catch (error) {
+        setImportError(error instanceof Error ? error.message : 'Failed to import CSV');
+        setTimeout(() => setImportError(null), 5000);
+      } finally {
+        setImporting(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }
+    };
+
+    reader.onerror = () => {
+      setImportError('Failed to read file');
+      setImporting(false);
+    };
+
+    reader.readAsText(file);
+  };
+
   return (
     <AdminLayout title="Devices" subtitle="Manage device catalogue for pricing and orders">
       {/* Header */}
@@ -41,29 +302,75 @@ export default function AdminDevices() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search devices..."
-              className="pl-9 pr-4 py-2 text-sm border border-gray-700 rounded-xl bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 w-48"
+              className="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 w-48"
             />
           </div>
           <div className="relative">
             <select
               value={brandFilter}
               onChange={e => setBrandFilter(e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-700 rounded-xl bg-gray-800 text-gray-300 focus:outline-none focus:border-red-500"
+              className="appearance-none pl-3 pr-8 py-2 text-sm border border-gray-300 rounded-xl bg-white text-gray-900 focus:outline-none focus:border-red-500"
             >
               <option value="">All Brands</option>
               {brands.map(b => <option key={b} value={b}>{b}</option>)}
             </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
           </div>
-          <span className="text-sm text-gray-500">{filtered.length} devices</span>
+          <span className="text-sm text-gray-600">{filtered.length} devices</span>
         </div>
-        <button
-          onClick={() => { setEditing(null); setShowModal(true); }}
-          className="flex items-center gap-1.5 px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition-all shadow-sm"
-        >
-          <Plus className="w-4 h-4" /> Add Device
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold transition-all shadow-sm"
+          >
+            <Download className="w-4 h-4" /> Export CSV
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Upload className="w-4 h-4" /> {importing ? 'Importing...' : 'Import CSV'}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            onChange={handleImport}
+            className="hidden"
+          />
+          <button
+            onClick={() => navigate('/admin-cashmymobile/devices/new')}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition-all shadow-sm"
+          >
+            <Plus className="w-4 h-4" /> Add Device
+          </button>
+        </div>
       </div>
+
+      {/* Import Notifications */}
+      {importSuccess !== null && (
+        <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3">
+          <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span className="text-white text-xs">✓</span>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-green-900">Import Successful!</p>
+            <p className="text-xs text-green-700 mt-1">Successfully imported {importSuccess} device{importSuccess !== 1 ? 's' : ''}</p>
+          </div>
+        </div>
+      )}
+      {importError && (
+        <div className="mb-4 bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span className="text-white text-xs">✕</span>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-red-900">Import Failed</p>
+            <p className="text-xs text-red-700 mt-1">{importError}</p>
+          </div>
+        </div>
+      )}
 
       {/* Brand tabs */}
       <div className="flex gap-2 flex-wrap mb-4">
@@ -75,45 +382,64 @@ export default function AdminDevices() {
 
       {/* Grid */}
       {filtered.length === 0 ? (
-        <div className="bg-gray-900 rounded-2xl border border-gray-800 py-16 text-center">
-          <Smartphone className="w-12 h-12 mx-auto text-gray-700 mb-3" />
-          <p className="text-gray-500 font-medium">No devices found</p>
+        <div className="bg-white rounded-2xl border border-gray-200 py-16 text-center shadow-sm">
+          <Smartphone className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+          <p className="text-gray-600 font-medium">No devices found</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {filtered.map(device => (
-            <div key={device.id} className={`bg-gray-900 rounded-2xl border ${device.isActive ? 'border-gray-800' : 'border-gray-800 opacity-50'} p-4 hover:border-gray-700 hover:shadow-lg hover:shadow-black/20 transition-all group`}>
-              {/* Icon */}
-              <div className="w-10 h-10 bg-gray-800 rounded-xl flex items-center justify-center mb-3">
-                <Smartphone className="w-5 h-5 text-gray-500" />
+            <div key={device.id} className={`bg-white rounded-2xl border ${device.isActive ? 'border-gray-200' : 'border-gray-300 opacity-50'} overflow-hidden hover:shadow-lg hover:border-red-300 transition-all duration-300 group relative`}>
+              {/* Device Image */}
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-6 flex items-center justify-center h-48 relative overflow-hidden">
+                <img 
+                  src={device.imageUrl || "https://zennara-storage.s3.ap-south-1.amazonaws.com/device-images/1771189550215-default%20(1).png"} 
+                  alt={device.name}
+                  className="h-full w-auto object-contain drop-shadow-lg transition-transform duration-300 group-hover:scale-105"
+                  onError={(e) => {
+                    e.currentTarget.src = "https://zennara-storage.s3.ap-south-1.amazonaws.com/device-images/1771189550215-default%20(1).png";
+                  }}
+                />
+                {/* Active badge */}
+                <div className="absolute top-3 right-3">
+                  <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${device.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-600'}`}>
+                    {device.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
               </div>
-              <div className="mb-3">
-                <p className="font-semibold text-white text-sm leading-tight">{device.name}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{device.brand} · {device.category}</p>
-              </div>
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={() => updateDevice(device.id, { isActive: !device.isActive })}
-                  className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${device.isActive ? 'text-emerald-400' : 'text-gray-600'}`}
-                >
-                  {device.isActive
-                    ? <ToggleRight className="w-5 h-5" />
-                    : <ToggleLeft className="w-5 h-5" />
-                  }
-                  {device.isActive ? 'Active' : 'Inactive'}
-                </button>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              
+              {/* Device Info */}
+              <div className="p-4">
+                <div className="mb-3">
+                  <p className="font-bold text-gray-900 text-base leading-tight mb-1">{device.name}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-gray-600">{device.brand}</span>
+                    <span className="text-gray-300">•</span>
+                    <span className="text-xs text-gray-500">{device.category}</span>
+                  </div>
+                </div>
+                {/* Actions */}
+                <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
                   <button
-                    onClick={() => { setEditing(device); setShowModal(true); }}
-                    className="p-1.5 rounded-lg text-gray-600 hover:text-blue-400 hover:bg-blue-500/10 transition-all"
+                    onClick={() => updateDevice(device.id, { isActive: !device.isActive })}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all ${device.isActive ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                   >
-                    <Pencil className="w-3.5 h-3.5" />
+                    {device.isActive ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                    {device.isActive ? 'Active' : 'Activate'}
+                  </button>
+                  <button
+                    onClick={() => navigate(`/admin-cashmymobile/devices/edit/${device.id}`)}
+                    className="p-2 rounded-lg text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                    title="Edit"
+                  >
+                    <Pencil className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setConfirmDelete(device.id)}
-                    className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                    className="p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 transition-all"
+                    title="Delete"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -122,30 +448,17 @@ export default function AdminDevices() {
         </div>
       )}
 
-      {/* Modal */}
-      {showModal && (
-        <DeviceModal
-          device={editing}
-          onClose={() => { setShowModal(false); setEditing(null); }}
-          onSave={(d) => {
-            if (editing) updateDevice(editing.id, d);
-            else addDevice(d as Omit<Device, 'id' | 'createdAt'>);
-            setShowModal(false); setEditing(null);
-          }}
-        />
-      )}
-
       {/* Confirm Delete */}
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 max-w-sm w-full shadow-xl">
             <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <Trash2 className="w-6 h-6 text-red-400" />
             </div>
-            <h3 className="font-bold text-white text-center mb-1">Delete Device?</h3>
-            <p className="text-sm text-gray-500 text-center mb-5">This will remove the device from the catalogue.</p>
+            <h3 className="font-bold text-gray-900 text-center mb-1">Delete Device?</h3>
+            <p className="text-sm text-gray-600 text-center mb-5">This will remove the device from the catalogue.</p>
             <div className="flex gap-3">
-              <button onClick={() => setConfirmDelete(null)} className="flex-1 py-2.5 rounded-xl border border-gray-700 text-sm font-semibold text-gray-400 hover:bg-gray-800">Cancel</button>
+              <button onClick={() => setConfirmDelete(null)} className="flex-1 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancel</button>
               <button onClick={() => { deleteDevice(confirmDelete); setConfirmDelete(null); }} className="flex-1 py-2.5 rounded-xl bg-red-600 text-sm font-semibold text-white hover:bg-red-700">Delete</button>
             </div>
           </div>
@@ -159,381 +472,9 @@ function BrandTab({ active, label, count, onClick }: { active: boolean; label: s
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border ${active ? 'border-red-500 bg-red-500/10 text-red-400' : 'border-gray-700 bg-gray-900 text-gray-500 hover:bg-gray-800'}`}
+      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border ${active ? 'border-red-500 bg-red-50 text-red-600' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'}`}
     >
-      {label} <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${active ? 'bg-red-500/20 text-red-400' : 'bg-gray-800 text-gray-500'}`}>{count}</span>
+      {label} <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${active ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'}`}>{count}</span>
     </button>
   );
 }
-
-function DeviceModal({ device, onClose, onSave }: {
-  device: Device | null;
-  onClose: () => void;
-  onSave: (d: Partial<Device>) => void;
-}) {
-  const { storageOptions, conditions, networks, brands, categories } = useAdmin();
-  
-  const activeStorages = storageOptions.filter(s => s.isActive);
-  const activeConditions = conditions.filter(c => c.isActive);
-  const activeNetworks = networks.filter(n => n.isActive);
-  const activeBrands = brands.filter(b => b.isActive);
-  const activeCategories = categories.filter(c => c.isActive);
-
-  const [form, setForm] = useState({
-    brand: device?.brand || (activeBrands[0]?.name || 'Apple'),
-    name: device?.name || '',
-    fullName: device?.fullName || '',
-    category: device?.category || (activeCategories[0]?.name || 'iPhone'),
-    storage: device?.storage || (activeStorages[0]?.name || ''),
-    network: device?.network || (activeNetworks[0]?.name || ''),
-    condition: device?.condition || (activeConditions[0]?.name || ''),
-    imageUrl: device?.imageUrl || '',
-    isActive: device?.isActive ?? true,
-  });
-  const [errors, setErrors] = useState<string[]>([]);
-  const [imagePreview, setImagePreview] = useState(device?.imageUrl || '');
-  const [showPricing, setShowPricing] = useState(false);
-  
-  // Pricing grid: network -> storage -> condition -> price
-  type PriceGrid = Record<string, Record<string, Record<string, string>>>;
-  const [pricingGrid, setPricingGrid] = useState<PriceGrid>(() => {
-    const grid: PriceGrid = {};
-    if (device?.defaultPricing && device.defaultPricing.length > 0) {
-      device.defaultPricing.forEach(entry => {
-        if (!grid[entry.network]) grid[entry.network] = {};
-        if (!grid[entry.network][entry.storage]) grid[entry.network][entry.storage] = {};
-        grid[entry.network][entry.storage]['New / Mint'] = String(entry.gradeNew || '');
-        grid[entry.network][entry.storage]['Good'] = String(entry.gradeGood || '');
-        grid[entry.network][entry.storage]['Broken / Faulty'] = String(entry.gradeBroken || '');
-      });
-    }
-    return grid;
-  });
-  const [selectedNetworks, setSelectedNetworks] = useState<string[]>(
-    activeNetworks.length > 0 ? [activeNetworks[0]?.name] : []
-  );
-
-  const set = (k: string, v: unknown) => setForm(p => ({ ...p, [k]: v }));
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // In production, upload file to server here
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const toggleNetwork = (name: string) => {
-    setSelectedNetworks(prev => {
-      if (prev.includes(name)) {
-        if (prev.length === 1) return prev;
-        return prev.filter(n => n !== name);
-      } else {
-        return [...prev, name];
-      }
-    });
-  };
-
-  const setPriceValue = (network: string, storage: string, condition: string, val: string) => {
-    setPricingGrid(prev => {
-      const updated = { ...prev };
-      if (!updated[network]) updated[network] = {};
-      if (!updated[network][storage]) updated[network][storage] = {};
-      updated[network][storage][condition] = val;
-      return updated;
-    });
-  };
-
-  const handleSave = () => {
-    const errs: string[] = [];
-    if (!form.brand.trim()) errs.push('Brand is required');
-    if (!form.name.trim()) errs.push('Name is required');
-    if (!form.category.trim()) errs.push('Category is required');
-    if (errs.length > 0) { setErrors(errs); return; }
-    if (!form.fullName.trim()) form.fullName = `${form.brand} ${form.name}`;
-    
-    // Build defaultPricing array from pricing grid
-    const defaultPricing: NonNullable<Device['defaultPricing']> = [];
-    Object.entries(pricingGrid).forEach(([network, storages]) => {
-      Object.entries(storages).forEach(([storage, conditions]) => {
-        const gradeNew = parseFloat(conditions['New / Mint'] || '0') || 0;
-        const gradeGood = parseFloat(conditions['Good'] || '0') || 0;
-        const gradeBroken = parseFloat(conditions['Broken / Faulty'] || '0') || 0;
-        if (gradeNew > 0 || gradeGood > 0 || gradeBroken > 0) {
-          defaultPricing.push({ network, storage, gradeNew, gradeGood, gradeBroken });
-        }
-      });
-    });
-    
-    const saveData = {
-      ...form,
-      imageUrl: imagePreview || form.imageUrl,
-      defaultPricing: defaultPricing.length > 0 ? defaultPricing : undefined,
-    };
-    
-    onSave(saveData);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4 overflow-y-auto py-8">
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl my-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
-          <h2 className="font-bold text-white">{device ? 'Edit Device' : 'Add Device'}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-          {errors.length > 0 && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 space-y-1">
-              {errors.map(e => (
-                <div key={e} className="flex items-center gap-2 text-sm text-red-400">
-                  <AlertCircle className="w-3.5 h-3.5" /> {e}
-                </div>
-              ))}
-            </div>
-          )}
-          {/* Device Photo Upload */}
-          <div>
-            <label className="text-xs font-semibold text-gray-400 block mb-2">Device Photo</label>
-            <div className="flex items-center gap-4">
-              {imagePreview ? (
-                <div className="relative w-24 h-24 rounded-xl border border-gray-700 overflow-hidden bg-gray-800 flex-shrink-0">
-                  <img src={imagePreview} alt="Preview" className="w-full h-full object-contain" />
-                  <button
-                    onClick={() => { setImagePreview(''); set('imageUrl', ''); }}
-                    className="absolute top-1 right-1 p-1 bg-red-600 rounded-lg hover:bg-red-700"
-                  >
-                    <X className="w-3 h-3 text-white" />
-                  </button>
-                </div>
-              ) : (
-                <div className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-700 bg-gray-800/50 flex items-center justify-center flex-shrink-0">
-                  <Image className="w-8 h-8 text-gray-600" />
-                </div>
-              )}
-              <div className="flex-1">
-                <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-700 bg-gray-800 hover:bg-gray-750 text-sm font-semibold text-gray-300 cursor-pointer transition-all">
-                  <Upload className="w-4 h-4" />
-                  {imagePreview ? 'Change Photo' : 'Upload Photo'}
-                  <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                </label>
-                <p className="text-xs text-gray-600 mt-1.5">or enter URL below</p>
-              </div>
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-gray-400 block mb-1">Image URL</label>
-            <input 
-              value={form.imageUrl} 
-              onChange={e => { set('imageUrl', e.target.value); setImagePreview(e.target.value); }} 
-              className={inputCls} 
-              placeholder="https://..." 
-            />
-          </div>
-
-          {/* Device Details */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-semibold text-gray-400 block mb-1">Brand *</label>
-              <select value={form.brand} onChange={e => set('brand', e.target.value)} className={inputCls}>
-                {activeBrands.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-400 block mb-1">Category *</label>
-              <select value={form.category} onChange={e => set('category', e.target.value)} className={inputCls}>
-                {activeCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-              </select>
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-gray-400 block mb-1">Model Name *</label>
-            <input value={form.name} onChange={e => set('name', e.target.value)} className={inputCls} placeholder="iPhone 16 Pro Max" />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-gray-400 block mb-1">Full Name (for display)</label>
-            <input value={form.fullName} onChange={e => set('fullName', e.target.value)} className={inputCls} placeholder="Auto-generated if blank" />
-          </div>
-
-          {/* Device Specifications */}
-          <div className="border-t border-gray-800 pt-4 mt-2">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Device Specifications</h3>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-gray-400 block mb-1">Storage</label>
-                <select value={form.storage} onChange={e => set('storage', e.target.value)} className={inputCls}>
-                  <option value="">Select...</option>
-                  {activeStorages.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-400 block mb-1">Network</label>
-                <select value={form.network} onChange={e => set('network', e.target.value)} className={inputCls}>
-                  <option value="">Select...</option>
-                  {activeNetworks.map(n => <option key={n.id} value={n.name}>{n.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-400 block mb-1">Condition</label>
-                <select value={form.condition} onChange={e => set('condition', e.target.value)} className={inputCls}>
-                  <option value="">Select...</option>
-                  {activeConditions.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                </select>
-              </div>
-            </div>
-            <p className="text-xs text-gray-600 mt-2">Default values - can configure full pricing matrix below</p>
-          </div>
-
-          {/* Pricing Configuration Section */}
-          <div className="border-t border-gray-800 pt-4 mt-2">
-            <button
-              type="button"
-              onClick={() => setShowPricing(!showPricing)}
-              className="flex items-center justify-between w-full text-left mb-3"
-            >
-              <div>
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Pricing Configuration</h3>
-                <p className="text-xs text-gray-600 mt-0.5">Set prices by network, storage & condition</p>
-              </div>
-              <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${showPricing ? 'rotate-180' : ''}`} />
-            </button>
-            
-            {showPricing && (
-              <div className="space-y-4">
-                {/* Network Selection */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Networks</span>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedNetworks(activeNetworks.map(n => n.name))}
-                      className="text-xs text-red-400 hover:text-red-300 font-medium"
-                    >
-                      Select All
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {activeNetworks.map(n => {
-                      const isSelected = selectedNetworks.includes(n.name);
-                      return (
-                        <button
-                          key={n.id}
-                          type="button"
-                          onClick={() => toggleNetwork(n.name)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                            isSelected
-                              ? 'bg-red-600 border-red-500 text-white'
-                              : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500'
-                          }`}
-                        >
-                          {isSelected && <span className="mr-1">✓</span>}
-                          {n.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Pricing Grid for First Selected Network */}
-                {selectedNetworks.length > 0 && activeStorages.length > 0 && activeConditions.length > 0 && (
-                  <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-800">
-                    <p className="text-xs text-amber-400/80 font-medium mb-3">
-                      ⚡ Setting prices for {selectedNetworks.length} network{selectedNetworks.length > 1 ? 's' : ''}: {selectedNetworks.join(', ')}
-                    </p>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm border-separate" style={{ borderSpacing: '0 6px' }}>
-                        <thead>
-                          <tr>
-                            <th className="text-left pb-1 pr-4 text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[100px]">
-                              Condition
-                            </th>
-                            {activeStorages.map(s => (
-                              <th key={s.id} className="pb-1 px-2 text-center min-w-[110px]">
-                                <span className="inline-block px-2 py-1 rounded-lg bg-gray-800 border border-gray-700 text-xs font-bold text-gray-300">
-                                  {s.name}
-                                </span>
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {activeConditions.map(cond => {
-                            const condColor = cond.name === 'New / Mint' 
-                              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                              : cond.name === 'Good'
-                              ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
-                              : 'bg-red-500/15 text-red-400 border-red-500/30';
-                            
-                            return (
-                              <tr key={cond.id}>
-                                <td className="py-1 pr-4">
-                                  <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold border ${condColor}`}>
-                                    {cond.name}
-                                  </span>
-                                </td>
-                                {activeStorages.map(stor => {
-                                  const network = selectedNetworks[0];
-                                  const value = pricingGrid[network]?.[stor.name]?.[cond.name] || '';
-                                  return (
-                                    <td key={stor.id} className="py-1 px-2">
-                                      <div className="flex items-center border border-gray-700/80 rounded-lg overflow-hidden focus-within:border-red-500 focus-within:ring-1 focus-within:ring-red-500/20" style={{ backgroundColor: '#000' }}>
-                                        <span className="pl-2 pr-1 text-xs font-bold text-gray-500 select-none">£</span>
-                                        <input
-                                          type="number"
-                                          min={0}
-                                          placeholder="0"
-                                          value={value}
-                                          onChange={e => {
-                                            // Update all selected networks
-                                            selectedNetworks.forEach(net => {
-                                              setPriceValue(net, stor.name, cond.name, e.target.value);
-                                            });
-                                          }}
-                                          className="w-full py-2 pr-2 text-white text-sm font-semibold placeholder-gray-600 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                          style={{ backgroundColor: '#000', colorScheme: 'dark' }}
-                                        />
-                                      </div>
-                                    </td>
-                                  );
-                                })}
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between p-3 bg-gray-800/60 rounded-xl">
-            <span className="text-sm font-semibold text-gray-300">Active in catalogue</span>
-            <button
-              type="button"
-              onClick={() => set('isActive', !form.isActive)}
-              className={`flex items-center gap-1.5 text-sm font-semibold transition-colors ${form.isActive ? 'text-emerald-600' : 'text-gray-400'}`}
-            >
-              {form.isActive ? <ToggleRight className="w-6 h-6" /> : <ToggleLeft className="w-6 h-6" />}
-              {form.isActive ? 'Active' : 'Inactive'}
-            </button>
-          </div>
-        </div>
-        <div className="flex justify-end gap-3 px-6 pb-6">
-          <button onClick={onClose} className="px-5 py-2.5 rounded-xl border border-gray-700 text-sm font-semibold text-gray-400 hover:bg-gray-800">Cancel</button>
-          <button onClick={handleSave} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-sm font-semibold text-white">
-            <Save className="w-4 h-4" /> {device ? 'Save Changes' : 'Add Device'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const inputCls = 'w-full px-3 py-2 text-sm border border-gray-700 rounded-lg bg-gray-800 text-gray-200 placeholder-gray-600 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all';

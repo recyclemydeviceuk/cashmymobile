@@ -43,7 +43,7 @@ export default function About() {
           {/* Stats row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
             {[
-              { value: '24hrs', label: 'Payment Time', icon: Clock, color: 'text-green-600', bg: 'bg-green-50' },
+              { value: 'Fast', label: 'Bank Transfer', icon: Clock, color: 'text-green-600', bg: 'bg-green-50' },
               { value: '100%', label: 'Secure Process', icon: ShieldCheck, color: 'text-red-600', bg: 'bg-red-50' },
               { value: 'Free', label: 'Postage', icon: Package, color: 'text-blue-600', bg: 'bg-blue-50' },
               { value: 'UK', label: 'Based Service', icon: MapPin, color: 'text-red-600', bg: 'bg-red-50' },
@@ -77,7 +77,7 @@ export default function About() {
                   Selling your old phone used to be a hassle. Complex processes, hidden fees, delayed payments, and concerns about data security made it more trouble than it was worth. We knew there had to be a better way.
                 </p>
                 <p>
-                  That's why we created Cash My Mobile — a service built on trust, transparency, and speed. We've streamlined the entire process into just four simple steps, removed all the hidden costs, and guarantee payment within 24 hours.
+                  That's why we created Cash My Mobile — a service built on trust, transparency, and speed. We've streamlined the entire process into just four simple steps, removed all the hidden costs, and guarantee prompt payment.
                 </p>
                 <p>
                   We're committed to providing a reliable service with honest assessments and competitive pricing. Our focus is on making the selling process as smooth and straightforward as possible.
@@ -150,7 +150,7 @@ export default function About() {
               {
                 icon: Zap,
                 title: 'Speed & Efficiency',
-                desc: 'From quote to payment in 24 hours. We value your time and make the process lightning fast at every step.',
+                desc: 'From quote to fast payment. We value your time and make the process lightning fast at every step.',
                 bg: 'bg-blue-50', color: 'text-blue-600', border: 'hover:border-blue-200',
               },
               {
@@ -196,7 +196,7 @@ export default function About() {
                 {[
                   'Free postage with prepaid labels or packaging kits',
                   'Instant quotes with transparent pricing',
-                  'Payment within 24 hours via bank transfer',
+                  'Payment via bank transfer promptly after inspection',
                   'Military-grade data wiping for security',
                   'Fully insured shipping for your peace of mind',
                   'Accept all conditions — Good, Poor, or Broken',
@@ -271,7 +271,7 @@ export default function About() {
               <div className="flex flex-wrap justify-center gap-4">
                 {[
                   { icon: ShieldCheck, text: 'Safe & Secure' },
-                  { icon: Clock, text: 'Paid in 24 Hours' },
+                  { icon: Clock, text: 'Fast Bank Transfer' },
                   { icon: Lock, text: 'Data Wiped' },
                   { icon: BadgeCheck, text: 'No Hidden Fees' },
                 ].map(({ icon: Icon, text }) => (
@@ -314,7 +314,7 @@ export default function About() {
               </button>
             </Link>
           </div>
-          <p className="text-gray-400 text-sm mt-6">Free quote · No obligation · Payment in 24 hours</p>
+          <p className="text-gray-400 text-sm mt-6">Free quote · No obligation · Fast bank transfer</p>
         </div>
       </section>
 

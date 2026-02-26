@@ -27,6 +27,8 @@ export default function Header() {
     { label: 'Home', to: '/', isActive: isHome },
     { label: 'Sell Phone', to: '/sell', isActive: location.pathname === '/sell' },
     { label: 'How It Works', to: '/how-it-works', isActive: location.pathname === '/how-it-works' },
+    { label: 'About Us', to: '/about', isActive: location.pathname === '/about' },
+    { label: 'Contact', to: '/contact', isActive: location.pathname === '/contact' },
     { label: 'FAQ', to: '/faq', isActive: location.pathname === '/faq' },
   ];
 

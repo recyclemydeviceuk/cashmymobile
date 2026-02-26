@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   CheckCircle2,
   ChevronLeft,
@@ -23,72 +24,37 @@ import {
   X,
   Wifi,
   Signal,
+  Loader2,
 } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { orderApi, CreateOrderPayload, deviceApi, utilitiesApi, pricingApi, Device, StorageOption, Network, DeviceCondition } from '../api';
 
-const applePhones = [
-  { name: 'iPhone 17', price: 460 },
-  { name: 'iPhone 17 Pro', price: 675 },
-  { name: 'iPhone 17 Pro Max', price: 740 },
-  { name: 'iPhone 16 Pro Max', price: 655 },
-  { name: 'iPhone 16 Pro', price: 555 },
-  { name: 'iPhone 16 Plus', price: 450 },
-  { name: 'iPhone 16', price: 425 },
-  { name: 'iPhone 15 Pro Max', price: 495 },
-  { name: 'iPhone 15 Pro', price: 440 },
-  { name: 'iPhone 15 Plus', price: 385 },
-  { name: 'iPhone 15', price: 360 },
-  { name: 'iPhone 14 Pro Max', price: 405 },
-  { name: 'iPhone 14 Pro', price: 365 },
-  { name: 'iPhone 14 Plus', price: 305 },
-  { name: 'iPhone 14', price: 275 },
-  { name: 'iPhone 13 Pro Max', price: 310 },
-  { name: 'iPhone 13 Pro', price: 280 },
-  { name: 'iPhone 13 Mini', price: 200 },
-  { name: 'iPhone 13', price: 220 },
-  { name: 'iPhone 12 Pro Max', price: 235 },
-  { name: 'iPhone 12 Pro', price: 210 },
-  { name: 'iPhone 12 Mini', price: 145 },
-  { name: 'iPhone 12', price: 170 },
-  { name: 'iPhone 11 Pro Max', price: 185 },
-  { name: 'iPhone 11 Pro', price: 165 },
-  { name: 'iPhone 11', price: 135 },
-];
 
-const samsungPhones = [
-  { name: 'Galaxy S25 Ultra', price: 580 },
-  { name: 'Galaxy S25 Plus', price: 440 },
-  { name: 'Galaxy S25', price: 400 },
-  { name: 'Galaxy S24 Ultra', price: 525 },
-  { name: 'Galaxy S24 Plus', price: 370 },
-  { name: 'Galaxy S24', price: 340 },
-  { name: 'Galaxy S23 Ultra', price: 410 },
-  { name: 'Galaxy S23 Plus', price: 290 },
-  { name: 'Galaxy S23', price: 265 },
-  { name: 'Galaxy S23 FE', price: 200 },
-  { name: 'Galaxy S22 Ultra', price: 330 },
-  { name: 'Galaxy S22 Plus', price: 230 },
-  { name: 'Galaxy S22', price: 215 },
-];
+interface SelectedPhone {
+  id: string;
+  name: string;
+  maxPrice: number;
+}
 
-const storageOptions = [
-  { label: '128GB', multiplier: 0.85 },
-  { label: '256GB', multiplier: 0.9 },
-  { label: '512GB', multiplier: 0.95 },
-  { label: '1TB', multiplier: 1.0 },
-];
+interface SelectedStorage {
+  id: string;
+  name: string;
+  value: string;
+}
 
-const networkOptions = [
-  { label: 'Unlocked', desc: 'Works with any UK network', multiplier: 1.0, badge: 'Best Price', color: 'green' },
-  { label: 'EE', desc: 'Locked to EE network', multiplier: 0.95, badge: null, color: 'blue' },
-  { label: 'O2', desc: 'Locked to O2 network', multiplier: 0.95, badge: null, color: 'blue' },
-  { label: 'Vodafone', desc: 'Locked to Vodafone network', multiplier: 0.95, badge: null, color: 'blue' },
-  { label: 'Three', desc: 'Locked to Three network', multiplier: 0.95, badge: null, color: 'blue' },
-  { label: 'Sky Mobile', desc: 'Locked to Sky Mobile', multiplier: 0.92, badge: null, color: 'blue' },
-  { label: 'Virgin Mobile', desc: 'Locked to Virgin Mobile', multiplier: 0.92, badge: null, color: 'blue' },
-  { label: 'iD Mobile', desc: 'Locked to iD Mobile', multiplier: 0.92, badge: null, color: 'blue' },
-];
+interface SelectedNetwork {
+  id: string;
+  name: string;
+  value: string;
+}
+
+interface SelectedCondition {
+  id: string;
+  name: string;
+  value: string;
+  description?: string;
+}
 
 
 function StepIndicator({ currentStep }: { currentStep: number }) {
@@ -148,25 +114,80 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
   );
 }
 
-function Step1({ onSelect }: { onSelect: (p: { name: string; price: number }) => void }) {
+function Step1({ onSelect, initialBrand }: { onSelect: (p: SelectedPhone) => void; initialBrand?: 'all' | 'apple' | 'samsung' }) {
   const [query, setQuery] = useState('');
-  const [brand, setBrand] = useState<'all' | 'apple' | 'samsung'>('all');
+  const [brand, setBrand] = useState<'all' | 'apple' | 'samsung'>(initialBrand || 'all');
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [deviceMaxPrices, setDeviceMaxPrices] = useState<{ [deviceId: string]: number }>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const allPhones = [
-    ...applePhones.map((p) => ({ ...p, brand: 'apple' as const })),
-    ...samsungPhones.map((p) => ({ ...p, brand: 'samsung' as const })),
-  ];
+  useEffect(() => {
+    const fetchDevices = async () => {
+      try {
+        setLoading(true);
+        const [devicesRes, pricingRes] = await Promise.all([
+          deviceApi.getAllDevices({ isActive: true }),
+          pricingApi.getAllPricing()
+        ]);
+        if (devicesRes.success && devicesRes.data?.devices) {
+          setDevices(devicesRes.data.devices);
+        }
+        if (pricingRes.success && pricingRes.data?.pricing) {
+          const maxPrices: { [deviceId: string]: number } = {};
+          pricingRes.data.pricing.forEach(p => {
+            const id = p.deviceId;
+            const max = Math.max(p.gradeNew, p.gradeGood, p.gradeBroken);
+            if (!maxPrices[id] || maxPrices[id] < max) maxPrices[id] = max;
+          });
+          setDeviceMaxPrices(maxPrices);
+        }
+      } catch (err: any) {
+        console.error('Error fetching devices:', err);
+        setError('Failed to load devices. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDevices();
+  }, []);
 
-  const filtered = allPhones.filter((p) => {
-    const matchesBrand = brand === 'all' || p.brand === brand;
-    const matchesQuery = p.name.toLowerCase().includes(query.toLowerCase());
+  const filtered = devices.filter((device) => {
+    const matchesBrand = brand === 'all' || device.brand.toLowerCase() === brand;
+    const matchesQuery = device.fullName.toLowerCase().includes(query.toLowerCase()) || device.name.toLowerCase().includes(query.toLowerCase());
     return matchesBrand && matchesQuery;
   });
 
-  const filteredApple = filtered.filter((p) => p.brand === 'apple');
-  const filteredSamsung = filtered.filter((p) => p.brand === 'samsung');
+  const filteredApple = filtered.filter((d) => d.brand.toLowerCase() === 'apple');
+  const filteredSamsung = filtered.filter((d) => d.brand.toLowerCase() === 'samsung');
 
   const isSearching = query.trim().length > 0;
+
+  if (loading) {
+    return (
+      <div className="bg-gray-50 min-h-full flex items-center justify-center py-20">
+        <div className="text-center">
+          <Loader2 className="w-10 h-10 text-red-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600 font-medium">Loading devices...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-gray-50 min-h-full flex items-center justify-center py-20">
+        <div className="text-center max-w-md mx-auto px-4">
+          <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+          <p className="text-gray-800 font-bold text-lg mb-2">Error Loading Devices</p>
+          <p className="text-gray-600 text-sm mb-4">{error}</p>
+          <button onClick={() => window.location.reload()} className="bg-red-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-red-700 transition">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-full">
@@ -268,20 +289,23 @@ function Step1({ onSelect }: { onSelect: (p: { name: string; price: number }) =>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-3">
-                  {filteredApple.map((phone) => (
-                    <button key={phone.name} onClick={() => onSelect(phone)}
-                      className="group bg-white border border-gray-200 rounded-2xl p-3 sm:p-4 text-left hover:border-red-400 hover:shadow-xl active:scale-95 transition-all duration-200 shadow-sm">
-                      <div className="w-full flex items-center justify-center bg-gray-50 rounded-xl mb-2 sm:mb-3 overflow-hidden" style={{height: '80px'}}>
-                        <img
-                          src="https://zennara-storage.s3.ap-south-1.amazonaws.com/device-images/1771189550215-default%20(1).png"
-                          alt={phone.name}
-                          className="h-full w-auto object-contain group-hover:scale-105 transition-transform duration-200"
-                        />
-                      </div>
-                      <div className="text-xs sm:text-sm font-semibold text-gray-800 group-hover:text-red-700 mb-1 leading-tight">{phone.name}</div>
-                      <div className="text-xs sm:text-sm font-bold text-red-600">Up to £{phone.price}</div>
-                    </button>
-                  ))}
+                  {filteredApple.map((device) => {
+                    const maxPrice = deviceMaxPrices[device._id];
+                    return (
+                      <button key={device._id} onClick={() => onSelect({ id: device._id, name: device.fullName, maxPrice: maxPrice || 0 })}
+                        className="group bg-white border border-gray-200 rounded-2xl p-3 sm:p-4 text-left hover:border-red-400 hover:shadow-xl active:scale-95 transition-all duration-200 shadow-sm">
+                        <div className="w-full flex items-center justify-center bg-gray-50 rounded-xl mb-2 sm:mb-3 overflow-hidden" style={{height: '80px'}}>
+                          <img
+                            src={device.imageUrl || "https://zennara-storage.s3.ap-south-1.amazonaws.com/device-images/1771189550215-default%20(1).png"}
+                            alt={device.fullName}
+                            className="h-full w-auto object-contain group-hover:scale-105 transition-transform duration-200"
+                          />
+                        </div>
+                        <div className="text-xs sm:text-sm font-semibold text-gray-800 group-hover:text-red-700 mb-1 leading-tight">{device.fullName}</div>
+                        <div className="text-xs sm:text-sm font-bold text-red-600">{maxPrice ? `Up to £${maxPrice}` : 'Get Quote'}</div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -299,20 +323,23 @@ function Step1({ onSelect }: { onSelect: (p: { name: string; price: number }) =>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-3">
-                  {filteredSamsung.map((phone) => (
-                    <button key={phone.name} onClick={() => onSelect(phone)}
-                      className="group bg-white border border-gray-200 rounded-2xl p-3 sm:p-4 text-left hover:border-red-400 hover:shadow-xl active:scale-95 transition-all duration-200 shadow-sm">
-                      <div className="w-full flex items-center justify-center bg-gray-50 rounded-xl mb-2 sm:mb-3 overflow-hidden" style={{height: '80px'}}>
-                        <img
-                          src="https://zennara-storage.s3.ap-south-1.amazonaws.com/device-images/1771189550215-default%20(1).png"
-                          alt={phone.name}
-                          className="h-full w-auto object-contain group-hover:scale-105 transition-transform duration-200"
-                        />
-                      </div>
-                      <div className="text-xs sm:text-sm font-semibold text-gray-800 group-hover:text-red-700 mb-1 leading-tight">{phone.name}</div>
-                      <div className="text-xs sm:text-sm font-bold text-red-600">Up to £{phone.price}</div>
-                    </button>
-                  ))}
+                  {filteredSamsung.map((device) => {
+                    const maxPrice = deviceMaxPrices[device._id];
+                    return (
+                      <button key={device._id} onClick={() => onSelect({ id: device._id, name: device.fullName, maxPrice: maxPrice || 0 })}
+                        className="group bg-white border border-gray-200 rounded-2xl p-3 sm:p-4 text-left hover:border-red-400 hover:shadow-xl active:scale-95 transition-all duration-200 shadow-sm">
+                        <div className="w-full flex items-center justify-center bg-gray-50 rounded-xl mb-2 sm:mb-3 overflow-hidden" style={{height: '80px'}}>
+                          <img
+                            src={device.imageUrl || "https://zennara-storage.s3.ap-south-1.amazonaws.com/device-images/1771189550215-default%20(1).png"}
+                            alt={device.fullName}
+                            className="h-full w-auto object-contain group-hover:scale-105 transition-transform duration-200"
+                          />
+                        </div>
+                        <div className="text-xs sm:text-sm font-semibold text-gray-800 group-hover:text-red-700 mb-1 leading-tight">{device.fullName}</div>
+                        <div className="text-xs sm:text-sm font-bold text-red-600">{maxPrice ? `Up to £${maxPrice}` : 'Get Quote'}</div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -323,7 +350,54 @@ function Step1({ onSelect }: { onSelect: (p: { name: string; price: number }) =>
   );
 }
 
-function Step2({ phone, onSelect, onBack }: { phone: { name: string; price: number }; onSelect: (s: { label: string; multiplier: number }) => void; onBack: () => void }) {
+function Step2({ phone, onSelect, onBack }: { phone: SelectedPhone; onSelect: (s: SelectedStorage) => void; onBack: () => void }) {
+  const [storageOptions, setStorageOptions] = useState<StorageOption[]>([]);
+  const [pricingData, setPricingData] = useState<{ [key: string]: number }>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [storageRes, pricingRes] = await Promise.all([
+          utilitiesApi.getStorageOptions(),
+          pricingApi.getPricingByDevice(phone.id)
+        ]);
+        
+        if (storageRes.success && storageRes.data?.storageOptions) {
+          setStorageOptions(storageRes.data.storageOptions.filter(s => s.isActive));
+        }
+        
+        if (pricingRes.success && pricingRes.data?.pricing) {
+          const prices: { [key: string]: number } = {};
+          pricingRes.data.pricing.forEach(p => {
+            const key = `${p.storage}`;
+            const maxPrice = Math.max(p.gradeNew, p.gradeGood, p.gradeBroken);
+            if (!prices[key] || prices[key] < maxPrice) {
+              prices[key] = maxPrice;
+            }
+          });
+          setPricingData(prices);
+        }
+      } catch (err) {
+        console.error('Error fetching storage options:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [phone.id]);
+
+  if (loading) {
+    return (
+      <div className="bg-gray-50 min-h-full flex items-center justify-center py-20">
+        <div className="text-center">
+          <Loader2 className="w-10 h-10 text-red-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600 font-medium">Loading storage options...</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="bg-gray-50 min-h-full">
       <div className="bg-gradient-to-br from-red-600 via-red-700 to-red-800 py-8 sm:py-10 px-4">
@@ -344,9 +418,9 @@ function Step2({ phone, onSelect, onBack }: { phone: { name: string; price: numb
       <div className="max-w-2xl mx-auto px-4 py-6 sm:py-10">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-5">
           {storageOptions.map((opt) => {
-            const price = Math.round(phone.price * opt.multiplier);
+            const price = pricingData[opt.value] || 0;
             return (
-              <button key={opt.label} onClick={() => onSelect(opt)}
+              <button key={opt._id} onClick={() => onSelect({ id: opt._id, name: opt.name, value: opt.value })}
                 className="group bg-white border-2 border-gray-200 rounded-2xl active:scale-95 transition-all duration-200 shadow-sm relative overflow-hidden hover:border-red-500 hover:shadow-xl
                            flex sm:flex-col items-center sm:items-center gap-3 sm:gap-0
                            px-4 py-3 sm:p-6 text-left sm:text-center">
@@ -357,13 +431,13 @@ function Step2({ phone, onSelect, onBack }: { phone: { name: string; price: numb
                 </div>
                 {/* Text block */}
                 <div className="relative flex-1 sm:flex-none">
-                  <div className="text-base sm:text-2xl font-extrabold text-gray-900 group-hover:text-red-700 transition-colors leading-tight">{opt.label}</div>
+                  <div className="text-base sm:text-2xl font-extrabold text-gray-900 group-hover:text-red-700 transition-colors leading-tight">{opt.name}</div>
                   <div className="text-[10px] sm:text-xs text-gray-500 sm:mb-3">Storage</div>
                 </div>
                 {/* Price badge — right side on mobile, bottom on sm+ */}
                 <div className="relative flex-shrink-0 sm:w-full">
                   <div className="bg-red-600 group-hover:bg-red-700 text-white text-xs sm:text-sm font-bold px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl transition-colors whitespace-nowrap sm:w-full sm:text-center">
-                    Up to £{price}
+                    {price > 0 ? `Up to £${price}` : 'Get Quote'}
                   </div>
                 </div>
               </button>
@@ -387,13 +461,42 @@ function Step2({ phone, onSelect, onBack }: { phone: { name: string; price: numb
 }
 
 function Step3Network({ phone, storage, onSelect, onBack }: {
-  phone: { name: string; price: number };
-  storage: { label: string; multiplier: number };
-  onSelect: (n: { label: string; multiplier: number }) => void;
+  phone: SelectedPhone;
+  storage: SelectedStorage;
+  onSelect: (n: SelectedNetwork) => void;
   onBack: () => void;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
-  const basePrice = Math.round(phone.price * storage.multiplier);
+  const [networks, setNetworks] = useState<Network[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNetworks = async () => {
+      try {
+        setLoading(true);
+        const response = await utilitiesApi.getNetworks();
+        if (response.success && response.data?.networks) {
+          setNetworks(response.data.networks.filter(n => n.isActive));
+        }
+      } catch (err) {
+        console.error('Error fetching networks:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchNetworks();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="bg-gray-50 min-h-full flex items-center justify-center py-20">
+        <div className="text-center">
+          <Loader2 className="w-10 h-10 text-red-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600 font-medium">Loading network options...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-full">
@@ -404,7 +507,7 @@ function Step3Network({ phone, storage, onSelect, onBack }: {
           </button>
           <div className="text-center">
             <div className="inline-flex items-center gap-2 bg-white/10 text-white text-xs font-semibold px-3 py-1.5 rounded-full mb-3 sm:mb-4 border border-white/20">
-              <Smartphone className="w-3.5 h-3.5 flex-shrink-0" /> {phone.name} · {storage.label}
+              <Smartphone className="w-3.5 h-3.5 flex-shrink-0" /> {phone.name} · {storage.name}
             </div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-2">Select Network</h1>
             <p className="text-red-200 text-sm sm:text-base">Is your device locked to a specific carrier?</p>
@@ -423,24 +526,18 @@ function Step3Network({ phone, storage, onSelect, onBack }: {
 
         {/* Network grid */}
         <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 mb-6">
-          {networkOptions.map((net) => {
-            const price = Math.round(basePrice * net.multiplier);
-            const isSelected = selected === net.label;
+          {networks.map((net) => {
+            const isSelected = selected === net._id;
             return (
               <button
-                key={net.label}
-                onClick={() => setSelected(net.label)}
+                key={net._id}
+                onClick={() => setSelected(net._id)}
                 className={`relative group bg-white border-2 rounded-2xl p-4 sm:p-5 text-left transition-all duration-200 shadow-sm ${
                   isSelected
                     ? 'border-red-500 shadow-lg shadow-red-100'
                     : 'border-gray-200 hover:border-red-300 hover:shadow-md'
                 }`}
               >
-                {net.badge && (
-                  <span className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-                    {net.badge}
-                  </span>
-                )}
                 <div className="flex items-start gap-3">
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
                     isSelected ? 'bg-red-100' : 'bg-gray-100 group-hover:bg-red-50'
@@ -452,22 +549,14 @@ function Step3Network({ phone, storage, onSelect, onBack }: {
                   <div className="flex-1 min-w-0">
                     <div className={`font-bold text-sm sm:text-base leading-tight transition-colors ${
                       isSelected ? 'text-red-700' : 'text-gray-900'
-                    }`}>{net.label}</div>
-                    <div className="text-[11px] sm:text-xs text-gray-500 mt-0.5 leading-tight">{net.desc}</div>
+                    }`}>{net.name}</div>
+                    <div className="text-[11px] sm:text-xs text-gray-500 mt-0.5 leading-tight">{net.value}</div>
                   </div>
                   <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${
                     isSelected ? 'border-red-600 bg-red-600' : 'border-gray-300'
                   }`}>
                     {isSelected && <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full" />}
                   </div>
-                </div>
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <span className={`text-xs sm:text-sm font-bold ${
-                    isSelected ? 'text-red-600' : 'text-gray-700'
-                  }`}>Up to £{price}</span>
-                  {net.multiplier < 1.0 && (
-                    <span className="text-[10px] text-gray-400 ml-1.5">({Math.round((1 - net.multiplier) * 100)}% less than unlocked)</span>
-                  )}
                 </div>
               </button>
             );
@@ -477,12 +566,12 @@ function Step3Network({ phone, storage, onSelect, onBack }: {
         {selected && (
           <button
             onClick={() => {
-              const n = networkOptions.find((x) => x.label === selected)!;
-              onSelect({ label: n.label, multiplier: n.multiplier });
+              const n = networks.find((x) => x._id === selected)!;
+              onSelect({ id: n._id, name: n.name, value: n.value });
             }}
             className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:bg-red-700 text-white py-3.5 sm:py-4 rounded-2xl font-bold text-sm sm:text-base transition-all shadow-lg shadow-red-200 flex items-center justify-center gap-2"
           >
-            Continue with <span className="underline underline-offset-2">{selected}</span>
+            Continue with <span className="underline underline-offset-2">{networks.find(n => n._id === selected)?.name}</span>
             <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         )}
@@ -492,62 +581,132 @@ function Step3Network({ phone, storage, onSelect, onBack }: {
 }
 
 function Step4Condition({ phone, storage, network, onSelect, onBack }: {
-  phone: { name: string; price: number };
-  storage: { label: string; multiplier: number };
-  network: { label: string; multiplier: number };
-  onSelect: (c: { label: string; multiplier: number; description: string }) => void;
+  phone: SelectedPhone;
+  storage: SelectedStorage;
+  network: SelectedNetwork;
+  onSelect: (c: SelectedCondition & { price: number }) => void;
   onBack: () => void;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
-  const basePrice = Math.round(phone.price * storage.multiplier * network.multiplier);
+  const [conditions, setConditions] = useState<DeviceCondition[]>([]);
+  const [pricing, setPricing] = useState<{ [key: string]: number }>({});
+  const [loading, setLoading] = useState(true);
 
-  const conditionConfig = [
-    {
-      label: 'NEW',
-      multiplier: 1.0,
-      description: 'Brand new or like new — fully functional, no wear, screen intact, battery perfect',
-      bullets: ['Screen fully intact, no cracks', 'All buttons & features work', 'Battery holds charge perfectly', 'No scratches or marks'],
-      color: 'green',
-      badge: 'Best Price',
-      bgHover: 'hover:border-green-400',
-      activeBorder: 'border-green-500',
-      activeShadow: 'shadow-green-100',
-      badgeBg: 'bg-green-100 text-green-700',
-      iconBg: 'bg-green-50',
-      iconColor: 'text-green-600',
-      priceBg: 'bg-green-600',
-    },
-    {
-      label: 'GOOD',
-      multiplier: 0.65,
-      description: 'Fully functional with visible wear — minor scratches, battery degradation',
-      bullets: ['Screen has minor scratches or marks', 'All core features work', 'Battery drains a little faster', 'Visible wear on body'],
-      color: 'amber',
-      badge: 'Good Value',
-      bgHover: 'hover:border-amber-400',
-      activeBorder: 'border-amber-500',
-      activeShadow: 'shadow-amber-100',
-      badgeBg: 'bg-amber-100 text-amber-700',
-      iconBg: 'bg-amber-50',
-      iconColor: 'text-amber-600',
-      priceBg: 'bg-amber-500',
-    },
-    {
-      label: 'BROKEN',
-      multiplier: 0.35,
-      description: 'Cracked screen, not turning on, or major functional problems',
-      bullets: ['Cracked or shattered screen', 'Not powering on', 'Major hardware faults', 'Water damage present'],
-      color: 'red',
-      badge: 'Still Paid',
-      bgHover: 'hover:border-red-400',
-      activeBorder: 'border-red-500',
-      activeShadow: 'shadow-red-100',
-      badgeBg: 'bg-red-100 text-red-700',
-      iconBg: 'bg-red-50',
-      iconColor: 'text-red-500',
-      priceBg: 'bg-red-500',
-    },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [conditionsRes, pricingRes] = await Promise.all([
+          utilitiesApi.getDeviceConditions(),
+          pricingApi.getPricingByDevice(phone.id)
+        ]);
+        
+        if (conditionsRes.success && conditionsRes.data?.deviceConditions) {
+          setConditions(conditionsRes.data.deviceConditions.filter(c => c.isActive));
+        }
+        
+        if (pricingRes.success && pricingRes.data?.pricing) {
+          const priceMap: { [key: string]: number } = {};
+          const allPricing = pricingRes.data.pricing;
+          
+          // Normalize values for matching (lowercase, trim)
+          const normalizedStorage = storage.value.toLowerCase().trim();
+          const normalizedNetwork = network.value.toLowerCase().trim();
+          
+          console.log('DEBUG storage.value:', storage.value, '| network.value:', network.value);
+          console.log('DEBUG normalized:', normalizedStorage, '|', normalizedNetwork);
+          console.log('DEBUG pricing sample:', allPricing[0]);
+          
+          allPricing.forEach(p => {
+            const pStorage = (p.storage || '').toLowerCase().trim();
+            const pNetwork = (p.network || '').toLowerCase().trim();
+            
+            // Try exact match first, then normalized match
+            const storageMatch = p.storage === storage.value || pStorage === normalizedStorage;
+            const networkMatch = p.network === network.value || pNetwork === normalizedNetwork;
+            
+            if (storageMatch && networkMatch) {
+              priceMap['NEW'] = p.gradeNew;
+              priceMap['GOOD'] = p.gradeGood;
+              priceMap['BROKEN'] = p.gradeBroken;
+              console.log('DEBUG: Price match found!', priceMap);
+            }
+          });
+          
+          // If no exact match, try fuzzy matching as fallback
+          if (Object.keys(priceMap).length === 0) {
+            console.log('DEBUG: No exact match, trying fuzzy match...');
+            allPricing.forEach(p => {
+              const pStorage = (p.storage || '').toLowerCase().replace(/\s+/g, '').trim();
+              const pNetwork = (p.network || '').toLowerCase().replace(/[-_\s]/g, '').trim();
+              const fuzzyStorage = normalizedStorage.replace(/\s+/g, '');
+              const fuzzyNetwork = normalizedNetwork.replace(/[-_\s]/g, '');
+              
+              if (pStorage === fuzzyStorage && pNetwork === fuzzyNetwork) {
+                priceMap['NEW'] = p.gradeNew;
+                priceMap['GOOD'] = p.gradeGood;
+                priceMap['BROKEN'] = p.gradeBroken;
+                console.log('DEBUG: Fuzzy match found!', priceMap);
+              }
+            });
+          }
+          
+          setPricing(priceMap);
+          
+          if (Object.keys(priceMap).length === 0) {
+            console.warn('WARNING: No pricing found for', storage.value, network.value);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching conditions:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [phone.id, storage.value, network.value]);
+
+  if (loading) {
+    return (
+      <div className="bg-gray-50 min-h-full flex items-center justify-center py-20">
+        <div className="text-center">
+          <Loader2 className="w-10 h-10 text-red-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600 font-medium">Loading condition options...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const getConditionConfig = (value: string) => {
+    const configs: { [key: string]: any } = {
+      'NEW': {
+        badge: 'Best Price',
+        bgHover: 'hover:border-green-400',
+        activeBorder: 'border-green-500',
+        activeShadow: 'shadow-green-100',
+        badgeBg: 'bg-green-100 text-green-700',
+        priceBg: 'bg-green-600',
+      },
+      'GOOD': {
+        badge: 'Good Value',
+        bgHover: 'hover:border-amber-400',
+        activeBorder: 'border-amber-500',
+        activeShadow: 'shadow-amber-100',
+        badgeBg: 'bg-amber-100 text-amber-700',
+        priceBg: 'bg-amber-500',
+      },
+      'BROKEN': {
+        badge: 'Still Paid',
+        bgHover: 'hover:border-red-400',
+        activeBorder: 'border-red-500',
+        activeShadow: 'shadow-red-100',
+        badgeBg: 'bg-red-100 text-red-700',
+        priceBg: 'bg-red-500',
+      },
+    };
+    return configs[value] || configs['GOOD'];
+  };
+
 
   return (
     <div className="bg-gray-50 min-h-full">
@@ -558,7 +717,7 @@ function Step4Condition({ phone, storage, network, onSelect, onBack }: {
           </button>
           <div className="text-center">
             <div className="inline-flex items-center gap-2 bg-white/10 text-white text-xs font-semibold px-3 py-1.5 rounded-full mb-3 sm:mb-4 border border-white/20">
-              <Smartphone className="w-3.5 h-3.5 flex-shrink-0" /> {phone.name} · {storage.label} · {network.label}
+              <Smartphone className="w-3.5 h-3.5 flex-shrink-0" /> {phone.name} · {storage.name} · {network.name}
             </div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-2">Select Device Condition</h1>
             <p className="text-red-200 text-sm sm:text-base">Be honest for an accurate quote — we verify on arrival</p>
@@ -571,7 +730,7 @@ function Step4Condition({ phone, storage, network, onSelect, onBack }: {
         <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-5 sm:mb-8">
           {[
             { icon: Shield, title: 'Data Wiped', desc: 'Military-grade erasure', bg: 'bg-red-50', color: 'text-red-600' },
-            { icon: Clock, title: 'Paid in 24hrs', desc: 'After we receive it', bg: 'bg-green-50', color: 'text-green-600' },
+            { icon: Clock, title: 'Fast Payment', desc: 'After we receive it', bg: 'bg-green-50', color: 'text-green-600' },
             { icon: TrendingUp, title: 'Price Match', desc: 'Beat any genuine quote', bg: 'bg-red-50', color: 'text-red-600' },
           ].map(({ icon: Icon, title, desc, bg, color }) => (
             <div key={title} className="bg-white border border-gray-100 rounded-xl sm:rounded-2xl p-3 sm:p-4 text-center shadow-sm">
@@ -586,36 +745,29 @@ function Step4Condition({ phone, storage, network, onSelect, onBack }: {
 
         {/* Condition cards */}
         <div className="space-y-3 sm:space-y-4 mb-5 sm:mb-6">
-          {conditionConfig.map((cond) => {
-            const price = Math.round(basePrice * cond.multiplier);
-            const isSelected = selected === cond.label;
+          {conditions.map((cond) => {
+            const config = getConditionConfig(cond.value);
+            const price = pricing[cond.value] || 0;
+            const isSelected = selected === cond._id;
             return (
-              <button key={cond.label} onClick={() => setSelected(cond.label)}
+              <button key={cond._id} onClick={() => setSelected(cond._id)}
                 className={`w-full bg-white border-2 rounded-2xl p-4 sm:p-5 text-left transition-all duration-200 shadow-sm ${
                   isSelected
-                    ? `${cond.activeBorder} shadow-lg ${cond.activeShadow}`
-                    : `border-gray-200 ${cond.bgHover} hover:shadow-md`
+                    ? `${config.activeBorder} shadow-lg ${config.activeShadow}`
+                    : `border-gray-200 ${config.bgHover} hover:shadow-md`
                 }`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1.5 sm:mb-2 flex-wrap">
-                      <span className="text-base sm:text-lg font-extrabold text-gray-900">{cond.label}</span>
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cond.badgeBg}`}>{cond.badge}</span>
+                      <span className="text-base sm:text-lg font-extrabold text-gray-900">{cond.name}</span>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${config.badgeBg}`}>{config.badge}</span>
                       {isSelected && <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />}
                     </div>
-                    <p className="text-xs sm:text-sm text-gray-500 mb-2 sm:mb-3 leading-relaxed">{cond.description}</p>
-                    <ul className="space-y-1">
-                      {cond.bullets.map((b) => (
-                        <li key={b} className="flex items-center gap-2 text-xs text-gray-600">
-                          <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cond.priceBg}`} />
-                          {b}
-                        </li>
-                      ))}
-                    </ul>
+                    <p className="text-xs sm:text-sm text-gray-500 mb-2 sm:mb-3 leading-relaxed">{cond.description || `Device in ${cond.name.toLowerCase()} condition`}</p>
                   </div>
                   <div className="flex-shrink-0 text-right">
-                    <div className={`${cond.priceBg} text-white text-lg sm:text-xl font-extrabold px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl`}>
-                      £{price}
+                    <div className={`${config.priceBg} text-white text-lg sm:text-xl font-extrabold px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl`}>
+                      {price > 0 ? `£${price}` : 'Quote'}
                     </div>
                     <div className="text-[10px] sm:text-xs text-gray-400 mt-1">instant quote</div>
                   </div>
@@ -634,9 +786,13 @@ function Step4Condition({ phone, storage, network, onSelect, onBack }: {
         </div>
 
         {selected && (
-          <button onClick={() => { const c = conditionConfig.find((x) => x.label === selected)!; onSelect({ label: c.label, multiplier: c.multiplier, description: c.description }); }}
+          <button onClick={() => { 
+            const c = conditions.find((x) => x._id === selected)!; 
+            const price = pricing[c.value] || 0;
+            onSelect({ id: c._id, name: c.name, value: c.value, description: c.description, price }); 
+          }}
             className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:bg-red-700 text-white py-3.5 sm:py-4 rounded-2xl font-bold text-sm sm:text-base transition-all shadow-lg shadow-red-200 flex items-center justify-center gap-2">
-            Continue with <span className="underline underline-offset-2">{selected}</span> condition
+            Continue with <span className="underline underline-offset-2">{conditions.find(c => c._id === selected)?.name}</span> condition
             <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         )}
@@ -646,25 +802,22 @@ function Step4Condition({ phone, storage, network, onSelect, onBack }: {
 }
 
 function Step5Details({ phone, storage, network, condition, onBack }: {
-  phone: { name: string; price: number };
-  storage: { label: string; multiplier: number };
-  network: { label: string; multiplier: number };
-  condition: { label: string; multiplier: number; description: string };
+  phone: SelectedPhone;
+  storage: SelectedStorage;
+  network: SelectedNetwork;
+  condition: SelectedCondition & { price: number };
   onBack: () => void;
 }) {
-  const finalPrice = Math.round(phone.price * storage.multiplier * network.multiplier * condition.multiplier);
+  const finalPrice = condition.price;
   const [postage, setPostage] = useState<'print' | 'pack'>('print');
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [orderNumber, setOrderNumber] = useState<string>('');
   const [form, setForm] = useState({ fullName: '', email: '', phone: '', address: '', postcode: '', accountName: '', sortCode: '', bankAccount: '' });
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm({ ...form, [e.target.name]: e.target.value });
   const inputClass = "w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-red-400 transition-all bg-white placeholder-gray-400 text-gray-900";
   const labelClass = "block text-sm font-semibold text-gray-700 mb-1.5";
-
-  // Generate stable 6-char alphanumeric order number once
-  const [orderNumber] = useState(() => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-  });
 
   if (submitted) {
     const orderDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -693,7 +846,7 @@ function Step5Details({ phone, storage, network, condition, onBack }: {
               <div>
                 <p className="text-[10px] font-semibold text-red-200 uppercase tracking-wide">Your Payout</p>
                 <p className="text-4xl font-extrabold text-white">£{finalPrice}</p>
-                <p className="text-[11px] text-red-200 mt-0.5">Paid within 24hrs of receipt</p>
+                <p className="text-[11px] text-red-200 mt-0.5">Paid via UK bank transfer</p>
               </div>
               <div className="text-right">
                 <p className="text-xs text-red-200">Placed on</p>
@@ -715,9 +868,9 @@ function Step5Details({ phone, storage, network, condition, onBack }: {
                 <div>
                   <p className="font-bold text-gray-900 text-sm">{phone.name}</p>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <span className="text-[10px] font-semibold bg-red-50 text-red-600 px-2 py-0.5 rounded-full">{storage.label}</span>
-                    <span className="text-[10px] font-semibold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{network.label}</span>
-                    <span className="text-[10px] font-semibold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{condition.label}</span>
+                    <span className="text-[10px] font-semibold bg-red-50 text-red-600 px-2 py-0.5 rounded-full">{storage.name}</span>
+                    <span className="text-[10px] font-semibold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{network.name}</span>
+                    <span className="text-[10px] font-semibold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{condition.name}</span>
                   </div>
                 </div>
               </div>
@@ -779,7 +932,7 @@ function Step5Details({ phone, storage, network, condition, onBack }: {
                 { icon: Mail, color: 'bg-red-50 text-red-600', step: '1', title: 'Check Your Email', desc: 'Your free prepaid shipping label is on its way' },
                 { icon: Package, color: 'bg-amber-50 text-amber-600', step: '2', title: 'Pack & Post', desc: 'Drop it at any post office — completely free' },
                 { icon: Search, color: 'bg-red-50 text-red-600', step: '3', title: 'We Inspect It', desc: 'Our team verifies the condition of your device' },
-                { icon: Clock, color: 'bg-green-50 text-green-600', step: '4', title: 'Get Paid in 24hrs', desc: `£${finalPrice} sent straight to your bank account` },
+                { icon: Clock, color: 'bg-green-50 text-green-600', step: '4', title: 'Get Paid Fast', desc: `£${finalPrice} sent straight to your bank account` },
               ].map(({ icon: Icon, color, step, title, desc }) => (
                 <div key={step} className="flex items-start gap-3">
                   <div className={`w-8 h-8 ${color} rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5`}>
@@ -822,7 +975,7 @@ function Step5Details({ phone, storage, network, condition, onBack }: {
           <div className="text-center">
             <div className="inline-flex items-center gap-2 bg-white/10 text-white text-xs font-semibold px-3 py-1.5 rounded-full mb-3 border border-white/20 max-w-xs mx-auto">
               <Smartphone className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="truncate">{phone.name} · {storage.label} · {network.label} · {condition.label}</span>
+              <span className="truncate">{phone.name} · {storage.name} · {network.name} · {condition.name}</span>
             </div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-2">Complete Your Order</h1>
             <p className="text-red-200 text-sm sm:text-base">Fill in your details to finalise the sale</p>
@@ -838,17 +991,17 @@ function Step5Details({ phone, storage, network, condition, onBack }: {
               <div>
                 <p className="text-[10px] font-semibold text-red-200">Your Quote</p>
                 <p className="text-3xl font-extrabold text-white">£{finalPrice}</p>
-                <p className="text-[10px] text-red-200 mt-0.5">Paid within 24 hours</p>
+                <p className="text-[10px] text-red-200 mt-0.5">Paid via UK bank transfer</p>
               </div>
               <div className="text-right">
                 <p className="text-xs font-bold text-white leading-tight">{phone.name}</p>
-                <p className="text-[10px] text-red-200 mt-0.5">{storage.label} · {condition.label}</p>
+                <p className="text-[10px] text-red-200 mt-0.5">{storage.name} · {condition.name}</p>
               </div>
             </div>
             <div className="px-4 py-3 grid grid-cols-2 gap-x-3 gap-y-2">
               {[
                 { icon: Mail, text: 'Free label emailed', color: 'text-red-600 bg-red-50' },
-                { icon: Clock, text: 'Paid in 24 hours', color: 'text-green-600 bg-green-50' },
+                { icon: Clock, text: 'Fast bank transfer', color: 'text-green-600 bg-green-50' },
                 { icon: Shield, text: 'Data wiped', color: 'text-red-600 bg-red-50' },
                 { icon: Lock, text: 'Encrypted & private', color: 'text-red-600 bg-red-50' },
               ].map(({ icon: Icon, text, color }) => (
@@ -867,7 +1020,47 @@ function Step5Details({ phone, storage, network, condition, onBack }: {
 
           {/* Form column */}
           <div className="md:col-span-2">
-            <form onSubmit={(e) => { e.preventDefault(); setSubmitted(true); }} className="space-y-4">
+            <form onSubmit={async (e) => { 
+              e.preventDefault(); 
+              setLoading(true);
+              setError(null);
+              
+              try {
+                const orderPayload: CreateOrderPayload = {
+                  customerName: form.fullName,
+                  customerPhone: form.phone,
+                  customerEmail: form.email,
+                  customerAddress: form.address,
+                  postcode: form.postcode,
+                  deviceId: phone.id,
+                  deviceName: phone.name,
+                  network: network.value,
+                  deviceGrade: condition.value as 'NEW' | 'GOOD' | 'BROKEN',
+                  storage: storage.value,
+                  offeredPrice: finalPrice,
+                  postageMethod: postage === 'print' ? 'label' : 'postbag',
+                  payoutDetails: {
+                    accountName: form.accountName,
+                    sortCode: form.sortCode,
+                    accountNumber: form.bankAccount,
+                  },
+                };
+
+                const response = await orderApi.createOrder(orderPayload);
+                
+                if (response.success && response.data?.order) {
+                  setOrderNumber(response.data.order.orderNumber);
+                  setSubmitted(true);
+                } else {
+                  setError(response.error || 'Failed to create order. Please try again.');
+                }
+              } catch (err: any) {
+                console.error('Order submission error:', err);
+                setError(err.response?.data?.error || err.message || 'Failed to submit order. Please try again.');
+              } finally {
+                setLoading(false);
+              }
+            }} className="space-y-4">
 
               {/* Personal Details */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6">
@@ -978,10 +1171,38 @@ function Step5Details({ phone, storage, network, condition, onBack }: {
                 </div>
               </div>
 
-              <button type="submit"
-                className="w-full bg-gradient-to-r from-red-600 to-red-700 text-white py-3.5 sm:py-4 rounded-2xl font-bold text-sm sm:text-base transition-all shadow-lg shadow-red-200 flex items-center justify-center gap-2">
-                Complete Order — Get £{finalPrice}
-                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+              {error && (
+                <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-4 flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-red-800 mb-1">Order Submission Failed</p>
+                    <p className="text-xs text-red-600">{error}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setError(null)}
+                    className="text-red-400 hover:text-red-600 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
+              <button 
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3.5 sm:py-4 rounded-2xl font-bold text-sm sm:text-base transition-all shadow-lg shadow-red-200 flex items-center justify-center gap-2">
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                    Processing Order...
+                  </>
+                ) : (
+                  <>
+                    Complete Order — Get £{finalPrice}
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </>
+                )}
               </button>
 
               <div className="bg-gray-50 rounded-2xl border border-gray-200 p-4">
@@ -1007,24 +1228,24 @@ function Step5Details({ phone, storage, network, condition, onBack }: {
                 <div className="bg-gradient-to-br from-red-600 to-red-700 p-5 text-white">
                   <p className="text-xs font-semibold text-red-200 mb-1">Your Quote</p>
                   <p className="text-4xl font-extrabold">£{finalPrice}</p>
-                  <p className="text-xs text-red-200 mt-1">Paid within 24 hours</p>
+                  <p className="text-xs text-red-200 mt-1">Paid via UK bank transfer</p>
                 </div>
                 <div className="p-5 space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Device</span>
-                    <span className="font-semibold text-gray-800 text-right">{phone.name}</span>
+                    <span className="font-semibold text-gray-800 text-right break-words">{phone.name}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Storage</span>
-                    <span className="font-semibold text-gray-800">{storage.label}</span>
+                    <span className="font-semibold text-gray-800">{storage.name}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Network</span>
-                    <span className="font-semibold text-gray-800">{network.label}</span>
+                    <span className="font-semibold text-gray-800">{network.name}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Condition</span>
-                    <span className="font-semibold text-gray-800">{condition.label}</span>
+                    <span className="font-semibold text-gray-800">{condition.name}</span>
                   </div>
                 </div>
               </div>
@@ -1033,7 +1254,7 @@ function Step5Details({ phone, storage, network, condition, onBack }: {
                 {[
                   { icon: Mail, text: 'Free prepaid label emailed', color: 'text-red-600 bg-red-50' },
                   { icon: Shield, text: 'Data wiped securely', color: 'text-red-600 bg-red-50' },
-                  { icon: Clock, text: 'Paid within 24 hours', color: 'text-green-600 bg-green-50' },
+                  { icon: Clock, text: 'Fast bank transfer', color: 'text-green-600 bg-green-50' },
                   { icon: Lock, text: 'Encrypted & private', color: 'text-red-600 bg-red-50' },
                 ].map(({ icon: Icon, text, color }) => (
                   <div key={text} className="flex items-center gap-3">
@@ -1053,11 +1274,14 @@ function Step5Details({ phone, storage, network, condition, onBack }: {
 }
 
 export default function SellPhone() {
+  const [searchParams] = useSearchParams();
   const [step, setStep] = useState(1);
-  const [phone, setPhone] = useState<{ name: string; price: number } | null>(null);
-  const [storage, setStorage] = useState<{ label: string; multiplier: number } | null>(null);
-  const [network, setNetwork] = useState<{ label: string; multiplier: number } | null>(null);
-  const [condition, setCondition] = useState<{ label: string; multiplier: number; description: string } | null>(null);
+  const [phone, setPhone] = useState<SelectedPhone | null>(null);
+  const [storage, setStorage] = useState<SelectedStorage | null>(null);
+  const [network, setNetwork] = useState<SelectedNetwork | null>(null);
+  const [condition, setCondition] = useState<(SelectedCondition & { price: number }) | null>(null);
+
+  const initialBrand = searchParams.get('brand') as 'apple' | 'samsung' | null;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900">
@@ -1065,19 +1289,22 @@ export default function SellPhone() {
       <StepIndicator currentStep={step} />
       <main className="flex-1 bg-gray-50">
         {step === 1 && (
-          <Step1 onSelect={(p) => { setPhone(p); setStep(2); }} />
+          <Step1 
+            onSelect={(p) => { setPhone(p); setStep(2); }} 
+            initialBrand={initialBrand || 'all'}
+          />
         )}
         {step === 2 && phone && (
-          <Step2 phone={phone} onSelect={(s) => { setStorage(s); setStep(3); }} onBack={() => setStep(1)} />
+          <Step2 phone={phone} onSelect={(s) => { setStorage(s); setStep(3); }} onBack={() => { setStep(1); setPhone(null); }} />
         )}
         {step === 3 && phone && storage && (
-          <Step3Network phone={phone} storage={storage} onSelect={(n) => { setNetwork(n); setStep(4); }} onBack={() => setStep(2)} />
+          <Step3Network phone={phone} storage={storage} onSelect={(n) => { setNetwork(n); setStep(4); }} onBack={() => { setStep(2); setStorage(null); }} />
         )}
         {step === 4 && phone && storage && network && (
-          <Step4Condition phone={phone} storage={storage} network={network} onSelect={(c) => { setCondition(c); setStep(5); }} onBack={() => setStep(3)} />
+          <Step4Condition phone={phone} storage={storage} network={network} onSelect={(c) => { setCondition(c); setStep(5); }} onBack={() => { setStep(3); setNetwork(null); }} />
         )}
         {step === 5 && phone && storage && network && condition && (
-          <Step5Details phone={phone} storage={storage} network={network} condition={condition} onBack={() => setStep(4)} />
+          <Step5Details phone={phone} storage={storage} network={network} condition={condition} onBack={() => { setStep(4); setCondition(null); }} />
         )}
       </main>
       <Footer />
