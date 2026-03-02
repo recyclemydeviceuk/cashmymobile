@@ -952,7 +952,7 @@ function Step5Details({ phone, storage, network, condition, onBack }: {
           <div className="flex items-start gap-3 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 mb-5">
             <Shield className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-gray-500 leading-relaxed">
-              Your data is encrypted and your bank details are only used for this payment. Questions? Call <span className="text-red-500 font-semibold">+44 20 7123 4567</span>
+              Your data is encrypted and your bank details are only used for this payment. Questions? Call <span className="text-red-500 font-semibold">03333356679</span>
             </p>
           </div>
 
@@ -1082,7 +1082,7 @@ function Step5Details({ phone, storage, network, condition, onBack }: {
                     </div>
                     <div>
                       <label className={labelClass}>Phone Number <span className="text-red-500">*</span></label>
-                      <input type="tel" name="phone" value={form.phone} onChange={handleChange} placeholder="07123 456789" required className={inputClass} />
+                      <input type="tel" name="phone" value={form.phone} onChange={handleChange} placeholder="03333356679" required className={inputClass} />
                     </div>
                   </div>
                 </div>
@@ -1215,7 +1215,7 @@ function Step5Details({ phone, storage, network, condition, onBack }: {
                 </p>
                 <p className="text-xs text-gray-400">
                   By completing this order, you agree to our terms and conditions. Questions? Call us on{' '}
-                  <span className="text-red-500 font-medium">+44 20 7123 4567</span>
+                  <span className="text-red-500 font-medium">03333356679</span>
                 </p>
               </div>
             </form>

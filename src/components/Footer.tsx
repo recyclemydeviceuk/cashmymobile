@@ -130,7 +130,7 @@ export default function Footer() {
               </div>
               <div>
                 <p className="text-xs text-gray-600 mb-0.5">Based in</p>
-                <p className="text-xs sm:text-sm text-gray-400">London, United Kingdom</p>
+                <p className="text-xs sm:text-sm text-gray-400">45 Friargate, Preston, PR1 2AT</p>
               </div>
             </li>
           </ul>

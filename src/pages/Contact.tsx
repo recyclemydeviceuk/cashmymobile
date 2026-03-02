@@ -132,7 +132,7 @@ export default function Contact() {
               {
                 icon: MapPin,
                 title: 'Based In',
-                value: 'London, United Kingdom',
+                value: '45 Friargate, Preston, PR1 2AT',
                 sub: 'UK registered company',
                 href: '#',
                 bg: 'bg-blue-50',
@@ -243,7 +243,7 @@ export default function Contact() {
                       <label className={labelClass}>Phone Number</label>
                       <input
                         type="tel" name="phone" value={form.phone} onChange={handleChange}
-                        placeholder="07123 456789"
+                        placeholder="03333356679"
                         className={inputClass}
                       />
                     </div>
