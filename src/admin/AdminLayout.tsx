@@ -76,7 +76,7 @@ export default function AdminLayout({ children, title, subtitle }: Props) {
         <div className="flex items-center justify-between px-5 pt-5 pb-4">
           <Link to="/" className="flex items-center gap-3 group" target="_blank">
             <img
-              src="https://res.cloudinary.com/dn2sab6qc/image/upload/v1771700003/Cashmymobile_logo_y7ndez.png"
+              src="https://res.cloudinary.com/dn2sab6qc/image/upload/v1772457689/CMM-Logo_kid8km.png"
               alt="Cash My Mobile"
               className="h-8 w-auto object-contain"
               style={{ filter: 'brightness(0) saturate(100%) invert(27%) sepia(89%) saturate(4392%) hue-rotate(354deg) brightness(92%) contrast(93%)' }}

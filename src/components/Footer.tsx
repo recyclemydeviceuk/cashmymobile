@@ -31,7 +31,7 @@ export default function Footer() {
         <div className="col-span-2 md:col-span-1 space-y-5 sm:space-y-6">
           <Link to="/" className="flex items-center w-fit">
             <img
-              src="https://res.cloudinary.com/dn2sab6qc/image/upload/v1771700003/Cashmymobile_logo_y7ndez.png"
+              src="https://res.cloudinary.com/dn2sab6qc/image/upload/v1772457689/CMM-Logo_kid8km.png"
               alt="Cash My Mobile"
               className="h-8 sm:h-9 w-auto object-contain brightness-0 invert"
             />
@@ -119,8 +119,8 @@ export default function Footer() {
               </div>
               <div>
                 <p className="text-xs text-gray-600 mb-0.5">Call us</p>
-                <a href="tel:03332244018" className="text-xs sm:text-sm text-gray-400 hover:text-red-400 transition-colors">
-                  03332244018
+                <a href="tel:03333356679" className="text-xs sm:text-sm text-gray-400 hover:text-red-400 transition-colors">
+                  03333356679
                 </a>
               </div>
             </li>

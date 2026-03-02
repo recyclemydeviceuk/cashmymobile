@@ -13,7 +13,7 @@ const sections = [
         <ul className="space-y-2 ml-4">
           <li className="flex items-start gap-3">
             <div className="w-1.5 h-1.5 bg-red-500 rounded-full mt-2 flex-shrink-0" />
-            <span>You must provide accurate information.</span>
+            <span>You must provide accurate and complete information.</span>
           </li>
           <li className="flex items-start gap-3">
             <div className="w-1.5 h-1.5 bg-red-500 rounded-full mt-2 flex-shrink-0" />
@@ -21,7 +21,7 @@ const sections = [
           </li>
           <li className="flex items-start gap-3">
             <div className="w-1.5 h-1.5 bg-red-500 rounded-full mt-2 flex-shrink-0" />
-            <span>You must be a UK customer or shipping to a UK address.</span>
+            <span>You must be a UK customer or provide a UK delivery address.</span>
           </li>
         </ul>
         <p className="font-semibold text-gray-700 mt-4">Price & Payment:</p>
@@ -186,7 +186,7 @@ const sections = [
             </li>
             <li className="flex items-start gap-3">
               <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
-              <span><strong>Other:</strong> Original box is a plus but may not be required.</span>
+              <span><strong>Other:</strong> Original box preferred but not required.</span>
             </li>
             <li className="flex items-start gap-3">
               <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
@@ -262,7 +262,7 @@ const sections = [
           </li>
           <li className="flex items-start gap-3">
             <div className="w-1.5 h-1.5 bg-red-500 rounded-full mt-2 flex-shrink-0" />
-            <span>Choose to accept payment or have the device returned and if once accepted via email or whatsapp or call payment will be processed and it takes 24 hours to reflect in your bank cant be amended you will loose rights on your device once you accepted the offer.</span>
+            <span>Choose to accept payment or have the device returned. Once accepted via email, WhatsApp, or call, payment will be processed and will take 24 hours to reflect in your bank. The decision cannot be amended. You will lose rights to your device once you have accepted the offer.</span>
           </li>
         </ul>
         <p className="font-semibold text-gray-700 mt-4">Important Notes:</p>
@@ -324,12 +324,39 @@ const sections = [
   },
   {
     num: '8',
+    title: 'Privacy & Data Protection',
+    content: (
+      <div className="space-y-3 text-gray-500 text-sm leading-relaxed">
+        <p className="font-semibold text-gray-700">8.1 Data Retention</p>
+        <p>Data collected by Cash My Mobile may be retained in the following ways:</p>
+        <ul className="space-y-2 ml-4">
+          <li className="flex items-start gap-3">
+            <div className="w-1.5 h-1.5 bg-red-500 rounded-full mt-2 flex-shrink-0" />
+            <span>If you opt in to receive marketing data.</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <div className="w-1.5 h-1.5 bg-red-500 rounded-full mt-2 flex-shrink-0" />
+            <span>To comply with legal, tax, and accounting obligations.</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <div className="w-1.5 h-1.5 bg-red-500 rounded-full mt-2 flex-shrink-0" />
+            <span>To fulfil contractual obligations and resolve disputes.</span>
+          </li>
+        </ul>
+        <p className="font-semibold text-gray-700 mt-4">8.2 Complaints & Regulatory Authority</p>
+        <p>If you feel that Cash My Mobile is not fulfilling its duties under applicable data protection laws, you have the right to lodge a complaint with the Information Commissioner's Office.</p>
+        <p className="mt-2">References to international data transfers comply with current frameworks, including the EU-US Data Privacy Framework where applicable.</p>
+      </div>
+    ),
+  },
+  {
+    num: '9',
     title: 'General Terms',
     content: (
       <div className="space-y-3 text-gray-500 text-sm leading-relaxed">
         <p><strong>Governing Law:</strong> England & Wales.</p>
         <p><strong>Dispute Resolution:</strong> A 30-day mediation period is required before any legal action.</p>
-        <p><strong>Company:</strong> FB Phones Ltd (Reg. No. 15622827), Unit 9, Central Bus Station, Tithebarn Street, Preston PR1 1YT.</p>
+        <p><strong>Company:</strong> FB Phones Ltd (Reg. No. 15622827), 45 Friargate, Preston, PR1 2AT.</p>
         <p><strong>Contact:</strong> Email: contact@cashmymobile.co.uk (Mon-Fri, 10am-5pm).</p>
       </div>
     ),

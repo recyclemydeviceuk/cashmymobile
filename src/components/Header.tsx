@@ -40,7 +40,7 @@ export default function Header() {
           {/* Logo */}
           <Link to="/" className="flex items-center group flex-shrink-0">
             <img
-              src="https://res.cloudinary.com/dn2sab6qc/image/upload/v1771700003/Cashmymobile_logo_y7ndez.png"
+              src="https://res.cloudinary.com/dn2sab6qc/image/upload/v1772457689/CMM-Logo_kid8km.png"
               alt="Cash My Mobile"
               className="h-9 sm:h-10 w-auto object-contain"
               style={{ filter: 'invert(13%) sepia(94%) saturate(5541%) hue-rotate(3deg) brightness(95%) contrast(117%)' }}

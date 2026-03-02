@@ -9,7 +9,7 @@ import { useAdmin } from '../AdminContext';
 
 const SAMPLE_PAYLOAD = {
   customer_name: 'John Smith',
-  customer_phone: '03332244018',
+  customer_phone: '03333356679',
   customer_email: 'john@example.com',
   customer_address: '12 Baker Street, London, W1U 3BT',
   postage_method: 'label',

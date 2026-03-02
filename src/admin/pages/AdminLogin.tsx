@@ -125,7 +125,7 @@ export default function AdminLogin() {
           {/* Logo */}
           <div className="flex flex-col items-center mb-6">
             <img
-              src="https://res.cloudinary.com/dn2sab6qc/image/upload/v1771700003/Cashmymobile_logo_y7ndez.png"
+              src="https://res.cloudinary.com/dn2sab6qc/image/upload/v1772457689/CMM-Logo_kid8km.png"
               alt="Cash My Mobile"
               className="h-10 w-auto object-contain mb-4"
               style={{ filter: 'brightness(0) saturate(100%) invert(27%) sepia(89%) saturate(4392%) hue-rotate(354deg) brightness(92%) contrast(93%)' }}

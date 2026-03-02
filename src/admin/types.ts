@@ -1,13 +1,17 @@
 // ─── Order Status Workflow ───────────────────────────────────────────────────
 export type OrderStatus =
+  | 'PENDING'
   | 'RECEIVED'
   | 'PACK_SENT'
   | 'DEVICE_RECEIVED'
   | 'INSPECTION_PASSED'
   | 'INSPECTION_FAILED'
   | 'PRICE_REVISED'
+  | 'COUNTER_OFFER_PENDING'
+  | 'COUNTER_OFFER_ACCEPTED'
   | 'PAYOUT_READY'
   | 'PAID'
+  | 'COMPLETED'
   | 'CLOSED'
   | 'CANCELLED';
 
@@ -25,27 +29,35 @@ export const ORDER_STATUSES: OrderStatus[] = [
 ];
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  PENDING: 'Pending',
   RECEIVED: 'Received',
   PACK_SENT: 'Pack Sent',
   DEVICE_RECEIVED: 'Device Received',
   INSPECTION_PASSED: 'Inspection Passed',
   INSPECTION_FAILED: 'Inspection Failed',
   PRICE_REVISED: 'Price Revised',
+  COUNTER_OFFER_PENDING: 'Counter Offer Pending',
+  COUNTER_OFFER_ACCEPTED: 'Counter Offer Accepted',
   PAYOUT_READY: 'Payout Ready',
   PAID: 'Paid',
+  COMPLETED: 'Completed',
   CLOSED: 'Closed',
   CANCELLED: 'Cancelled',
 };
 
 export const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
+  PENDING: 'bg-gray-100 text-gray-700',
   RECEIVED: 'bg-blue-100 text-blue-700',
   PACK_SENT: 'bg-purple-100 text-purple-700',
   DEVICE_RECEIVED: 'bg-indigo-100 text-indigo-700',
   INSPECTION_PASSED: 'bg-green-100 text-green-700',
   INSPECTION_FAILED: 'bg-red-100 text-red-700',
   PRICE_REVISED: 'bg-yellow-100 text-yellow-700',
+  COUNTER_OFFER_PENDING: 'bg-amber-100 text-amber-700',
+  COUNTER_OFFER_ACCEPTED: 'bg-green-100 text-green-700',
   PAYOUT_READY: 'bg-orange-100 text-orange-700',
   PAID: 'bg-emerald-100 text-emerald-700',
+  COMPLETED: 'bg-emerald-100 text-emerald-700',
   CLOSED: 'bg-gray-100 text-gray-600',
   CANCELLED: 'bg-red-100 text-red-700',
 };
@@ -115,6 +127,13 @@ export interface Order {
   // Internal
   transactionId?: string;
   priceRevisionReason?: string;
+
+  // Counter Offer
+  counterOffer?: {
+    hasCounterOffer?: boolean;
+    latestOfferId?: string;
+    status?: 'PENDING' | 'ACCEPTED' | 'DECLINED';
+  };
 }
 
 // ─── Device ──────────────────────────────────────────────────────────────────

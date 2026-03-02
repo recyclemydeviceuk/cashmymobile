@@ -123,9 +123,9 @@ export default function Contact() {
               {
                 icon: Phone,
                 title: 'Call Us',
-                value: '03332244018',
+                value: '03333356679',
                 sub: 'Mon–Fri, 9am–6pm',
-                href: 'tel:03332244018',
+                href: 'tel:03333356679',
                 bg: 'bg-green-50',
                 color: 'text-green-600',
               },

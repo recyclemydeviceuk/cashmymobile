@@ -19,6 +19,7 @@ import AdminDeviceForm from './admin/pages/AdminDeviceForm';
 import AdminPricing from './admin/pages/AdminPricing';
 import AdminUtilities from './admin/pages/AdminUtilities';
 import AdminApiGateway from './admin/pages/AdminApiGateway';
+import CounterOfferReview from './pages/CounterOfferReview';
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
           <Route path="/terms" element={<TermsConditions />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/counter-offer/:token" element={<CounterOfferReview />} />
 
           {/* ── Admin Panel ── */}
           <Route path="/admin-cashmymobile/login" element={<AdminLogin />} />
