@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CheckCircle2, XCircle, Package, Calendar, PoundSterling, AlertCircle, Loader2 } from 'lucide-react';
+import { CheckCircle2, XCircle, Package, Calendar, PoundSterling, AlertCircle, Loader2, MessageCircle } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import * as counterOfferApi from '../api/counterOffers';
@@ -142,6 +142,12 @@ export default function CounterOfferReview() {
                       </li>
                     </ul>
                   </div>
+                  <button
+                    onClick={() => navigate('/')}
+                    className="bg-red-600 text-white px-8 py-3 rounded-xl hover:bg-red-700 transition-all font-semibold"
+                  >
+                    Back to Homepage
+                  </button>
                 </>
               ) : (
                 <>
@@ -167,14 +173,25 @@ export default function CounterOfferReview() {
                       </li>
                     </ul>
                   </div>
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
+                    <a
+                      href="https://wa.me/447742692367"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 transition-all font-semibold"
+                    >
+                      <MessageCircle className="w-5 h-5" />
+                      Discuss on WhatsApp
+                    </a>
+                    <button
+                      onClick={() => navigate('/')}
+                      className="bg-red-600 text-white px-8 py-3 rounded-xl hover:bg-red-700 transition-all font-semibold"
+                    >
+                      Back to Homepage
+                    </button>
+                  </div>
                 </>
               )}
-              <button
-                onClick={() => navigate('/')}
-                className="bg-red-600 text-white px-8 py-3 rounded-xl hover:bg-red-700 transition-all font-semibold"
-              >
-                Back to Homepage
-              </button>
             </div>
           </div>
         </div>

@@ -620,7 +620,10 @@ export function useAdminStore() {
             : [];
           
           if (updates.defaultPricing && updates.defaultPricing.length > 0) {
-            // Update or create each pricing entry
+            // Prepare updates and creates in parallel
+            const updatePromises: Promise<any>[] = [];
+            const createPromises: Promise<any>[] = [];
+            
             for (const pricing of updates.defaultPricing) {
               // Find existing entry by deviceId+network+storage combination
               const existing = currentEntries.find(
@@ -629,48 +632,51 @@ export function useAdminStore() {
               
               if (existing) {
                 // Update existing entry
-                await pricingApi.updatePricing(existing.id, {
-                  gradeNew: pricing.gradeNew,
-                  gradeGood: pricing.gradeGood,
-                  gradeBroken: pricing.gradeBroken,
-                });
+                updatePromises.push(
+                  pricingApi.updatePricing(existing.id, {
+                    gradeNew: pricing.gradeNew,
+                    gradeGood: pricing.gradeGood,
+                    gradeBroken: pricing.gradeBroken,
+                  })
+                );
               } else {
                 // Create new entry
-                await pricingApi.createPricing({
-                  deviceId: id,
-                  deviceName: deviceName,
-                  network: pricing.network,
-                  storage: pricing.storage,
-                  gradeNew: pricing.gradeNew,
-                  gradeGood: pricing.gradeGood,
-                  gradeBroken: pricing.gradeBroken,
-                });
+                createPromises.push(
+                  pricingApi.createPricing({
+                    deviceId: id,
+                    deviceName: deviceName,
+                    network: pricing.network,
+                    storage: pricing.storage,
+                    gradeNew: pricing.gradeNew,
+                    gradeGood: pricing.gradeGood,
+                    gradeBroken: pricing.gradeBroken,
+                  })
+                );
               }
             }
             
-            // Delete entries that are no longer in defaultPricing
+            // Execute all updates and creates in parallel
+            await Promise.all([...updatePromises, ...createPromises]);
+            
+            // Delete entries that are no longer in defaultPricing (in parallel)
             const newCombos = new Set(
               updates.defaultPricing.map(p => `${p.network}|${p.storage}`)
             );
-            for (const entry of currentEntries) {
-              const combo = `${entry.network}|${entry.storage}`;
-              if (!newCombos.has(combo)) {
-                try {
-                  await pricingApi.deletePricing(entry.id);
-                } catch (error) {
-                  console.error('Failed to delete pricing entry:', error);
-                }
-              }
-            }
+            const deletePromises = currentEntries
+              .filter(entry => !newCombos.has(`${entry.network}|${entry.storage}`))
+              .map(entry => pricingApi.deletePricing(entry.id).catch(err => 
+                console.error('Failed to delete pricing entry:', err)
+              ));
+            
+            await Promise.all(deletePromises);
           } else {
-            // Delete all pricing entries if defaultPricing is empty
-            for (const entry of currentEntries) {
-              try {
-                await pricingApi.deletePricing(entry.id);
-              } catch (error) {
-                console.error('Failed to delete pricing entry:', error);
-              }
-            }
+            // Delete all pricing entries in parallel
+            const deletePromises = currentEntries.map(entry =>
+              pricingApi.deletePricing(entry.id).catch(err =>
+                console.error('Failed to delete pricing entry:', err)
+              )
+            );
+            await Promise.all(deletePromises);
           }
           
           // Refetch pricing to update UI

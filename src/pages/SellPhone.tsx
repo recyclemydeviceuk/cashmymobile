@@ -364,13 +364,12 @@ function Step2({ phone, onSelect, onBack }: { phone: SelectedPhone; onSelect: (s
           pricingApi.getPricingByDevice(phone.id)
         ]);
         
-        if (storageRes.success && storageRes.data?.storageOptions) {
-          setStorageOptions(storageRes.data.storageOptions.filter(s => s.isActive));
-        }
+        let availableStorages = new Set<string>();
+        const prices: { [key: string]: number } = {};
         
         if (pricingRes.success && pricingRes.data?.pricing) {
-          const prices: { [key: string]: number } = {};
           pricingRes.data.pricing.forEach(p => {
+            availableStorages.add(p.storage);
             const key = `${p.storage}`;
             const maxPrice = Math.max(p.gradeNew, p.gradeGood, p.gradeBroken);
             if (!prices[key] || prices[key] < maxPrice) {
@@ -378,6 +377,22 @@ function Step2({ phone, onSelect, onBack }: { phone: SelectedPhone; onSelect: (s
             }
           });
           setPricingData(prices);
+        }
+        
+        if (storageRes.success && storageRes.data?.storageOptions) {
+          // Only show storage options that have pricing data for this device
+          // Sort by actual storage size (128GB, 256GB, 512GB, 1TB, 2TB, etc.)
+          const filtered = storageRes.data.storageOptions
+            .filter(s => s.isActive && availableStorages.has(s.value))
+            .sort((a, b) => {
+              const parseSize = (val: string) => {
+                const num = parseInt(val);
+                const isTB = val.toLowerCase().includes('tb');
+                return isTB ? num * 1024 : num;
+              };
+              return parseSize(a.value) - parseSize(b.value);
+            });
+          setStorageOptions(filtered);
         }
       } catch (err) {
         console.error('Error fetching storage options:', err);
@@ -474,9 +489,28 @@ function Step3Network({ phone, storage, onSelect, onBack }: {
     const fetchNetworks = async () => {
       try {
         setLoading(true);
-        const response = await utilitiesApi.getNetworks();
-        if (response.success && response.data?.networks) {
-          setNetworks(response.data.networks.filter(n => n.isActive));
+        const [networksRes, pricingRes] = await Promise.all([
+          utilitiesApi.getNetworks(),
+          pricingApi.getPricingByDevice(phone.id)
+        ]);
+        
+        let availableNetworks = new Set<string>();
+        
+        if (pricingRes.success && pricingRes.data?.pricing) {
+          // Find networks available for this device and storage combination
+          pricingRes.data.pricing.forEach(p => {
+            if (p.storage === storage.value) {
+              availableNetworks.add(p.network);
+            }
+          });
+        }
+        
+        if (networksRes.success && networksRes.data?.networks) {
+          // Only show networks that have pricing data for this device+storage
+          const filtered = networksRes.data.networks
+            .filter(n => n.isActive && availableNetworks.has(n.value))
+            .sort((a, b) => a.sortOrder - b.sortOrder);
+          setNetworks(filtered);
         }
       } catch (err) {
         console.error('Error fetching networks:', err);
@@ -485,7 +519,7 @@ function Step3Network({ phone, storage, onSelect, onBack }: {
       }
     };
     fetchNetworks();
-  }, []);
+  }, [phone.id, storage.value]);
 
   if (loading) {
     return (
@@ -601,21 +635,15 @@ function Step4Condition({ phone, storage, network, onSelect, onBack }: {
           pricingApi.getPricingByDevice(phone.id)
         ]);
         
-        if (conditionsRes.success && conditionsRes.data?.deviceConditions) {
-          setConditions(conditionsRes.data.deviceConditions.filter(c => c.isActive));
-        }
+        let availableConditions = new Set<string>();
+        const priceMap: { [key: string]: number } = {};
         
         if (pricingRes.success && pricingRes.data?.pricing) {
-          const priceMap: { [key: string]: number } = {};
           const allPricing = pricingRes.data.pricing;
           
           // Normalize values for matching (lowercase, trim)
           const normalizedStorage = storage.value.toLowerCase().trim();
           const normalizedNetwork = network.value.toLowerCase().trim();
-          
-          console.log('DEBUG storage.value:', storage.value, '| network.value:', network.value);
-          console.log('DEBUG normalized:', normalizedStorage, '|', normalizedNetwork);
-          console.log('DEBUG pricing sample:', allPricing[0]);
           
           allPricing.forEach(p => {
             const pStorage = (p.storage || '').toLowerCase().trim();
@@ -629,13 +657,16 @@ function Step4Condition({ phone, storage, network, onSelect, onBack }: {
               priceMap['NEW'] = p.gradeNew;
               priceMap['GOOD'] = p.gradeGood;
               priceMap['BROKEN'] = p.gradeBroken;
-              console.log('DEBUG: Price match found!', priceMap);
+              
+              // Track which conditions have prices > 0
+              if (p.gradeNew > 0) availableConditions.add('NEW');
+              if (p.gradeGood > 0) availableConditions.add('GOOD');
+              if (p.gradeBroken > 0) availableConditions.add('BROKEN');
             }
           });
           
           // If no exact match, try fuzzy matching as fallback
           if (Object.keys(priceMap).length === 0) {
-            console.log('DEBUG: No exact match, trying fuzzy match...');
             allPricing.forEach(p => {
               const pStorage = (p.storage || '').toLowerCase().replace(/\s+/g, '').trim();
               const pNetwork = (p.network || '').toLowerCase().replace(/[-_\s]/g, '').trim();
@@ -646,16 +677,38 @@ function Step4Condition({ phone, storage, network, onSelect, onBack }: {
                 priceMap['NEW'] = p.gradeNew;
                 priceMap['GOOD'] = p.gradeGood;
                 priceMap['BROKEN'] = p.gradeBroken;
-                console.log('DEBUG: Fuzzy match found!', priceMap);
+                
+                if (p.gradeNew > 0) availableConditions.add('NEW');
+                if (p.gradeGood > 0) availableConditions.add('GOOD');
+                if (p.gradeBroken > 0) availableConditions.add('BROKEN');
               }
             });
           }
           
           setPricing(priceMap);
-          
-          if (Object.keys(priceMap).length === 0) {
-            console.warn('WARNING: No pricing found for', storage.value, network.value);
-          }
+        }
+        
+        if (conditionsRes.success && conditionsRes.data?.deviceConditions) {
+          // Only show conditions that have pricing > 0 for this device+storage+network
+          // Sort by condition priority: New (1), Good (2), Broken (3)
+          const conditionPriority: { [key: string]: number } = {
+            'new': 1,
+            'good': 2,
+            'broken': 3,
+            'poor': 4
+          };
+          const filtered = conditionsRes.data.deviceConditions
+            .filter(c => {
+              if (!c.isActive) return false;
+              const conditionValue = c.value?.toUpperCase();
+              return availableConditions.has(conditionValue || '');
+            })
+            .sort((a, b) => {
+              const priorityA = conditionPriority[a.value?.toLowerCase() || ''] || 99;
+              const priorityB = conditionPriority[b.value?.toLowerCase() || ''] || 99;
+              return priorityA - priorityB;
+            });
+          setConditions(filtered);
         }
       } catch (err) {
         console.error('Error fetching conditions:', err);

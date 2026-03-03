@@ -168,7 +168,37 @@ export default function AdminDeviceForm() {
 
   const toggleItem = (setter: React.Dispatch<React.SetStateAction<string[]>>, name: string) => {
     setter(prev => {
-      return prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name];
+      const isRemoving = prev.includes(name);
+      
+      // If removing, clean up pricing grid
+      if (isRemoving) {
+        setPricingGrid(gridPrev => {
+          const updated = { ...gridPrev };
+          
+          // Determine which dimension we're removing from
+          if (setter === setSelectedNetworks) {
+            delete updated[name];
+          } else if (setter === setSelectedStorages) {
+            Object.keys(updated).forEach(network => {
+              if (updated[network][name]) {
+                delete updated[network][name];
+              }
+            });
+          } else if (setter === setSelectedConditions) {
+            Object.keys(updated).forEach(network => {
+              Object.keys(updated[network]).forEach(storage => {
+                if (updated[network][storage][name]) {
+                  delete updated[network][storage][name];
+                }
+              });
+            });
+          }
+          
+          return updated;
+        });
+      }
+      
+      return isRemoving ? prev.filter(n => n !== name) : [...prev, name];
     });
   };
 
@@ -220,8 +250,10 @@ export default function AdminDeviceForm() {
     const brokenCond = activeC.find(c => c.name.toLowerCase().includes('broken') || c.name.toLowerCase().includes('faulty'));
 
     const defaultPricing: NonNullable<Device['defaultPricing']> = [];
-    Object.entries(pricingGrid).forEach(([network, storages]) => {
-      Object.entries(storages).forEach(([storage, condPrices]) => {
+    // Only save pricing for selected combinations
+    selectedNetworks.forEach(network => {
+      selectedStorages.forEach(storage => {
+        const condPrices = pricingGrid[network]?.[storage] || {};
         const gradeNew = parseFloat(condPrices[newCond?.name || ''] || '0') || 0;
         const gradeGood = parseFloat(condPrices[goodCond?.name || ''] || '0') || 0;
         const gradeBroken = parseFloat(condPrices[brokenCond?.name || ''] || '0') || 0;
