@@ -43,14 +43,6 @@ class ApiClient {
         return response;
       },
       (error: AxiosError<ApiResponse>) => {
-        if (error.response) {
-          const errorMessage = error.response.data?.error || error.response.data?.message || 'An error occurred';
-          console.error('API Error:', errorMessage);
-        } else if (error.request) {
-          console.error('Network Error:', 'No response received from server');
-        } else {
-          console.error('Error:', error.message);
-        }
         return Promise.reject(error);
       }
     );

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Globe, Send, CheckCircle2, XCircle, Clock, Copy,
   Shield, AlertCircle, RefreshCw, ChevronDown, ChevronUp,
-  FileText, Zap, Plus, Trash2, Lock, Pencil, Check, X,
+  FileText, Zap, Key, Eye, EyeOff,
 } from 'lucide-react';
 import AdminLayout from '../AdminLayout';
 import { useAdmin } from '../AdminContext';
@@ -27,47 +27,15 @@ const SAMPLE_PAYLOAD = {
 };
 
 export default function AdminApiGateway() {
-  const { apiLogs, processApiOrder, ipWhitelist, addIpToWhitelist, removeIpFromWhitelist, updateIpWhitelistEntry } = useAdmin();
+  const { apiLogs, processApiOrder } = useAdmin();
   const [payload, setPayload] = useState(JSON.stringify(SAMPLE_PAYLOAD, null, 2));
   const [result, setResult] = useState<{ success: boolean; orderNumber?: string; error?: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [payloadError, setPayloadError] = useState('');
-  // IP Whitelist state
-  const [newIp, setNewIp] = useState('');
-  const [newLabel, setNewLabel] = useState('');
-  const [ipError, setIpError] = useState('');
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editIp, setEditIp] = useState('');
-  const [editLabel, setEditLabel] = useState('');
-  const [confirmDeleteIp, setConfirmDeleteIp] = useState<string | null>(null);
-
-  const isValidIp = (ip: string) => /^(\d{1,3}\.){3}\d{1,3}$/.test(ip.trim()) || /^[0-9a-fA-F:]+$/.test(ip.trim());
-
-  const handleAddIp = async () => {
-    setIpError('');
-    if (!newIp.trim()) { setIpError('IP address is required'); return; }
-    if (!isValidIp(newIp)) { setIpError('Enter a valid IPv4 or IPv6 address'); return; }
-    if (ipWhitelist.some(e => e.ip === newIp.trim())) { setIpError('This IP is already whitelisted'); return; }
-    try {
-      await addIpToWhitelist(newIp.trim(), newLabel.trim() || newIp.trim());
-      setNewIp('');
-      setNewLabel('');
-    } catch (error) {
-      setIpError('Failed to add IP to whitelist');
-    }
-  };
-
-  const handleEditSave = async (id: string) => {
-    if (!editIp.trim() || !isValidIp(editIp)) return;
-    try {
-      await updateIpWhitelistEntry(id, { ip: editIp.trim(), label: editLabel.trim() || editIp.trim() });
-      setEditingId(null);
-    } catch (error) {
-      console.error('Failed to update IP:', error);
-    }
-  };
+  const [partnerKey, setPartnerKey] = useState('');
+  const [partnerKeyVisible, setPartnerKeyVisible] = useState(false);
 
   const handleSend = async () => {
     setPayloadError('');
@@ -80,7 +48,7 @@ export default function AdminApiGateway() {
     }
     setLoading(true);
     try {
-      const res = await processApiOrder(parsed);
+      const res = await processApiOrder(parsed, partnerKey.trim() || undefined);
       setResult(res);
     } catch (error) {
       setResult({ success: false, error: 'Failed to send request' });
@@ -134,12 +102,22 @@ export default function AdminApiGateway() {
                 </button>
               </div>
 
+              {/* Auth header */}
+              <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+                <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider mb-2">Required Header</p>
+                <div className="flex items-center gap-2">
+                  <code className="text-xs font-mono text-blue-800 bg-blue-100 px-2 py-1 rounded">X-Partner-Key</code>
+                  <span className="text-xs text-blue-600">Your API key — obtain from admin Partners page</span>
+                </div>
+              </div>
+
               {/* Required fields */}
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Required Fields</p>
 
                 <div className="space-y-1">
                   {[
+                    ['customer_name', 'string', 'Customer full name'],
                     ['customer_phone', 'string', 'UK mobile number'],
                     ['customer_address', 'string', 'Full postal address'],
                     ['postage_method', '"label" | "postbag"', 'Shipping method'],
@@ -188,8 +166,8 @@ export default function AdminApiGateway() {
               <h3 className="font-bold text-amber-400 text-sm">Security Requirements</h3>
             </div>
             <ul className="space-y-1.5 text-xs text-amber-500">
+              <li className="flex items-start gap-2"><span className="font-bold mt-0.5">•</span> <span><code className="bg-amber-500/20 px-1 rounded font-mono">X-Partner-Key</code> header required on every request — missing or invalid key returns 401</span></li>
               <li className="flex items-start gap-2"><span className="font-bold mt-0.5">•</span> HTTPS only — all HTTP connections will be rejected</li>
-              <li className="flex items-start gap-2"><span className="font-bold mt-0.5">•</span> IP allowlist enforced — requests from unlisted IPs return 401</li>
               <li className="flex items-start gap-2"><span className="font-bold mt-0.5">•</span> Bank details encrypted at rest — never log raw payout data</li>
               <li className="flex items-start gap-2"><span className="font-bold mt-0.5">•</span> All requests are logged regardless of outcome</li>
               <li className="flex items-start gap-2"><span className="font-bold mt-0.5">•</span> Orders are accepted even if some optional fields are missing</li>
@@ -220,6 +198,34 @@ export default function AdminApiGateway() {
                 {payloadError && (
                   <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
                     <AlertCircle className="w-3.5 h-3.5" /> {payloadError}
+                  </p>
+                )}
+              </div>
+
+              {/* Partner Key */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-2 flex items-center gap-1.5">
+                  <Key className="w-3.5 h-3.5" /> X-Partner-Key Header
+                </label>
+                <div className="relative">
+                  <input
+                    type={partnerKeyVisible ? 'text' : 'password'}
+                    value={partnerKey}
+                    onChange={e => setPartnerKey(e.target.value)}
+                    placeholder="cmm_pk_xxxxxxxxxxxxxxxx..."
+                    className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPartnerKeyVisible(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors"
+                  >
+                    {partnerKeyVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {!partnerKey && (
+                  <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" /> Required — get your key from the Partners page
                   </p>
                 )}
               </div>
@@ -265,157 +271,6 @@ export default function AdminApiGateway() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* ── IP Whitelist ──────────────────────────────────────────────────── */}
-      <div className="mt-6 bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-        <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-200">
-          <Lock className="w-4 h-4 text-red-500" />
-          <h2 className="font-bold text-gray-900">IP Whitelist</h2>
-          <span className="text-xs text-gray-500">Only whitelisted IPs can send API requests</span>
-          <span className="ml-auto bg-red-50 text-red-700 text-xs font-bold px-2.5 py-0.5 rounded-full">{ipWhitelist.length} allowed</span>
-        </div>
-
-        {/* Add new IP */}
-        <div className="px-5 py-4 border-b border-gray-100 bg-gray-50">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Add IP Address</p>
-          <div className="flex flex-wrap gap-2">
-            <div className="flex-1 min-w-[160px]">
-              <input
-                value={newIp}
-                onChange={e => { setNewIp(e.target.value); setIpError(''); }}
-                onKeyDown={e => e.key === 'Enter' && handleAddIp()}
-                placeholder="e.g. 185.23.10.45"
-                className={`w-full px-3 py-2 text-sm border rounded-xl bg-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 font-mono ${ipError ? 'border-red-400' : 'border-gray-300'}`}
-              />
-            </div>
-            <div className="flex-1 min-w-[160px]">
-              <input
-                value={newLabel}
-                onChange={e => setNewLabel(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleAddIp()}
-                placeholder="Label (e.g. Partner Server)"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-xl bg-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
-              />
-            </div>
-            <button
-              onClick={handleAddIp}
-              className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition-all shadow-sm"
-            >
-              <Plus className="w-4 h-4" /> Add IP
-            </button>
-          </div>
-          {ipError && (
-            <p className="text-xs text-red-500 mt-2 flex items-center gap-1">
-              <AlertCircle className="w-3.5 h-3.5" /> {ipError}
-            </p>
-          )}
-        </div>
-
-        {/* Whitelist table */}
-        {ipWhitelist.length === 0 ? (
-          <div className="px-5 py-12 text-center">
-            <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
-              <Lock className="w-6 h-6 text-red-400" />
-            </div>
-            <p className="text-sm font-semibold text-gray-700">No IPs whitelisted</p>
-            <p className="text-xs text-gray-500 mt-1">All API requests will be rejected until you add at least one IP</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  {['IP Address', 'Label', 'Added', 'Actions'].map(h => (
-                    <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-gray-600 uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {ipWhitelist.map(entry => (
-                  <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
-                    {editingId === entry.id ? (
-                      <>
-                        <td className="px-5 py-3">
-                          <input
-                            value={editIp}
-                            onChange={e => setEditIp(e.target.value)}
-                            className="px-2.5 py-1.5 text-xs font-mono border border-gray-300 rounded-lg focus:outline-none focus:border-red-500 w-40"
-                          />
-                        </td>
-                        <td className="px-5 py-3">
-                          <input
-                            value={editLabel}
-                            onChange={e => setEditLabel(e.target.value)}
-                            className="px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:border-red-500 w-48"
-                          />
-                        </td>
-                        <td className="px-5 py-3 text-xs text-gray-500">{entry.addedAt}</td>
-                        <td className="px-5 py-3">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleEditSave(entry.id)}
-                              className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-all"
-                            >
-                              <Check className="w-3.5 h-3.5" /> Save
-                            </button>
-                            <button
-                              onClick={() => setEditingId(null)}
-                              className="flex items-center gap-1 px-2.5 py-1.5 border border-gray-300 hover:bg-gray-100 text-gray-700 text-xs rounded-lg transition-all"
-                            >
-                              <X className="w-3.5 h-3.5" /> Cancel
-                            </button>
-                          </div>
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td className="px-5 py-3">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0"></span>
-                            <code className="text-xs font-mono text-gray-900 bg-gray-100 px-2 py-0.5 rounded">{entry.ip}</code>
-                          </div>
-                        </td>
-                        <td className="px-5 py-3 text-sm text-gray-700">{entry.label}</td>
-                        <td className="px-5 py-3 text-xs text-gray-500">{entry.addedAt}</td>
-                        <td className="px-5 py-3">
-                          {confirmDeleteIp === entry.id ? (
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-red-600 font-semibold">Remove?</span>
-                              <button
-                                onClick={() => { removeIpFromWhitelist(entry.id); setConfirmDeleteIp(null); }}
-                                className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition-all"
-                              >Yes</button>
-                              <button
-                                onClick={() => setConfirmDeleteIp(null)}
-                                className="px-2.5 py-1 border border-gray-300 hover:bg-gray-100 text-gray-700 text-xs rounded-lg transition-all"
-                              >No</button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => { setEditingId(entry.id); setEditIp(entry.ip); setEditLabel(entry.label); }}
-                                className="flex items-center gap-1 px-2.5 py-1.5 border border-gray-300 hover:bg-gray-100 text-gray-700 text-xs rounded-lg transition-all"
-                              >
-                                <Pencil className="w-3 h-3" /> Edit
-                              </button>
-                              <button
-                                onClick={() => setConfirmDeleteIp(entry.id)}
-                                className="flex items-center gap-1 px-2.5 py-1.5 border border-red-200 hover:bg-red-50 text-red-600 text-xs rounded-lg transition-all"
-                              >
-                                <Trash2 className="w-3 h-3" /> Remove
-                              </button>
-                            </div>
-                          )}
-                        </td>
-                      </>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
 
       {/* ── Request Logs ─────────────────────────────────────────────────── */}

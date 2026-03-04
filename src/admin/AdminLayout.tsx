@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Smartphone, BarChart2,
   Globe, Settings, LogOut, Menu, X, ChevronRight,
-  ExternalLink,
+  ExternalLink, Building2,
 } from 'lucide-react';
 import { adminAuthApi } from '../api/adminAuth';
 
@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { label: 'Pricing Feed', icon: BarChart2, to: `${BASE}/pricing` },
   { label: 'Utilities', icon: Settings, to: `${BASE}/utilities` },
   { label: 'API Gateway', icon: Globe, to: `${BASE}/api-gateway` },
+  { label: 'Partners', icon: Building2, to: `${BASE}/partners` },
 ];
 
 interface Props {
@@ -45,8 +46,7 @@ export default function AdminLayout({ children, title, subtitle }: Props) {
   const handleLogout = async () => {
     try {
       await adminAuthApi.logout();
-    } catch (error) {
-      console.error('Logout error:', error);
+    } catch {
     } finally {
       localStorage.removeItem('adminAuthToken');
       localStorage.removeItem('adminUser');

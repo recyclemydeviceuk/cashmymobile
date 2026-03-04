@@ -1,8 +1,5 @@
 import api from './api';
 
-// Debug: Log if admin token exists
-const adminToken = localStorage.getItem('adminAuthToken');
-console.log('Admin auth token exists:', !!adminToken);
 
 export interface CounterOffer {
   _id: string;

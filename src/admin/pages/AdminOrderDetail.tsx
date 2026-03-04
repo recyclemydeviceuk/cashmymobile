@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, Package, User, Smartphone,
   CreditCard, Truck, Clock, CheckCircle2,
-  AlertCircle, DollarSign,
+  AlertCircle, DollarSign, Building2,
 } from 'lucide-react';
 import AdminLayout from '../AdminLayout';
 import { useAdmin } from '../AdminContext';
@@ -72,6 +72,12 @@ export default function AdminOrderDetail() {
           <StatusBadge value={order.status} statuses={orderStatuses} fallbackColor="bg-gray-100 text-gray-700" />
           {order.source === 'API' && (
             <span className="text-sm font-semibold px-3 py-1.5 rounded-full bg-purple-100 text-purple-700">API Order</span>
+          )}
+          {order.source === 'API' && order.partnerName && (
+            <span className="flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-full bg-blue-100 text-blue-700">
+              <Building2 className="w-3.5 h-3.5" />
+              {order.partnerName}
+            </span>
           )}
         </div>
       </div>
@@ -202,6 +208,14 @@ export default function AdminOrderDetail() {
           <InfoCard icon={<Clock className="w-4 h-4 text-gray-600" />} title="Metadata">
             <Row label="Order Number" value={`#${order.orderNumber}`} mono />
             <Row label="Source" value={order.source} />
+            {order.partnerName && (
+              <Row label="Partner" value={
+                <span className="flex items-center gap-1.5">
+                  <Building2 className="w-3 h-3 text-blue-600" />
+                  <span className="text-blue-700 font-semibold">{order.partnerName}</span>
+                </span>
+              } />
+            )}
             <Row label="Created" value={new Date(order.createdAt).toLocaleString('en-GB')} />
             <Row label="Updated" value={new Date(order.updatedAt).toLocaleString('en-GB')} />
           </InfoCard>

@@ -127,6 +127,7 @@ export interface Order {
   // Internal
   transactionId?: string;
   priceRevisionReason?: string;
+  partnerName?: string | null;
 
   // Counter Offer
   counterOffer?: {
@@ -205,6 +206,17 @@ export interface ApiRequestLog {
   payload: string;
   error?: string;
   responseTime: number;
+}
+
+// ─── Partner ─────────────────────────────────────────────────────────────────
+export interface Partner {
+  id: string;
+  name: string;
+  keyPrefix: string;
+  isActive: boolean;
+  totalOrders: number;
+  lastUsedAt: string | null;
+  createdAt: string;
 }
 
 // ─── Admin Auth ──────────────────────────────────────────────────────────────

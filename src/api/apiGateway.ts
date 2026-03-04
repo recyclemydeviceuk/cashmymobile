@@ -1,14 +1,5 @@
 import api from './api';
 
-export interface IpWhitelistEntry {
-  _id: string;
-  ip: string;
-  label: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface ApiLogEntry {
   _id: string;
   timestamp: string;
@@ -24,22 +15,6 @@ export interface ApiLogEntry {
 }
 
 export const apiGatewayApi = {
-  // IP Whitelist endpoints
-  getAllIps: () => api.get<{ ips: IpWhitelistEntry[] }>('/ip-whitelist'),
-  
-  getIpById: (id: string) => api.get<{ ip: IpWhitelistEntry }>(`/ip-whitelist/${id}`),
-  
-  addIp: (data: { ip: string; label: string }) => 
-    api.post<{ ip: IpWhitelistEntry }>('/ip-whitelist', data),
-  
-  updateIp: (id: string, data: Partial<{ ip: string; label: string; isActive: boolean }>) =>
-    api.put<{ ip: IpWhitelistEntry }>(`/ip-whitelist/${id}`, data),
-  
-  removeIp: (id: string) => api.delete(`/ip-whitelist/${id}`),
-  
-  checkIp: (ip: string) => 
-    api.get<{ ip: string; isWhitelisted: boolean; label: string | null }>(`/ip-whitelist/check/${ip}`),
-
   // API Logs endpoints
   getAllLogs: (params?: {
     page?: number;
@@ -76,7 +51,7 @@ export const apiGatewayApi = {
     api.delete(`/api-logs/cleanup?daysOld=${daysOld || 90}`),
 
   // API Gateway test endpoint
-  testOrder: (payload: Record<string, unknown>) =>
+  testOrder: (payload: Record<string, unknown>, partnerKey?: string) =>
     api.post<{
       success: boolean;
       orderNumber?: string;
@@ -88,5 +63,5 @@ export const apiGatewayApi = {
         status: string;
         createdAt: string;
       };
-    }>('/gateway/decisiontech', payload),
+    }>('/gateway/decisiontech', payload, partnerKey ? { headers: { 'X-Partner-Key': partnerKey } } : undefined),
 };

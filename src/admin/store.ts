@@ -1,13 +1,13 @@
 import { useState, useCallback, useEffect } from 'react';
 import type {
-  Order, Device, PricingEntry, UtilityItem, ApiRequestLog,
-  OrderStatus, PostageMethod,
+  Order, Device, PricingEntry, UtilityItem, ApiRequestLog, Partner,
 } from './types';
 import { utilitiesApi } from '../api/utilities';
 import { deviceApi } from '../api/devices';
 import { orderApi } from '../api/orders';
 import { pricingApi } from '../api/pricing';
 import { apiGatewayApi } from '../api/apiGateway';
+import { partnerApi } from '../api/partners';
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
 
@@ -235,9 +235,7 @@ export function useAdminStore() {
   const [pricingPage, setPricingPage] = useState(1);
   const [pricingHasMore, setPricingHasMore] = useState(true);
   const [apiLogs, setApiLogs] = useState<ApiRequestLog[]>([]);
-  const [ipWhitelist, setIpWhitelist] = useState<{ id: string; ip: string; label: string; addedAt: string }[]>([]);
   const [loadingApiLogs, setLoadingApiLogs] = useState(true);
-  const [loadingIpWhitelist, setLoadingIpWhitelist] = useState(true);
   const [storageOptions, setStorageOptions] = useState<UtilityItem[]>([]);
   const [conditions, setConditions] = useState<UtilityItem[]>([]);
   const [networks, setNetworks] = useState<UtilityItem[]>([]);
@@ -247,6 +245,8 @@ export function useAdminStore() {
   const [paymentStatuses, setPaymentStatuses] = useState<UtilityItem[]>([]);
   const [loadingUtilities, setLoadingUtilities] = useState(true);
   const [loadingDevices, setLoadingDevices] = useState(true);
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [loadingPartners, setLoadingPartners] = useState(true);
 
   const fetchOrders = useCallback(async (params?: Parameters<typeof orderApi.getAllOrders>[0], append = false) => {
     try {
@@ -278,6 +278,7 @@ export function useAdminStore() {
           payoutDetails: o.payoutDetails || { bankName: '', accountNumber: '', sortCode: '' },
           transactionId: o.transactionId,
           priceRevisionReason: o.priceRevisionReason,
+          partnerName: o.partnerName || null,
         }));
         if (append) {
           setOrders(prev => [...prev, ...mapped]);
@@ -372,26 +373,6 @@ export function useAdminStore() {
     }
   }, []);
 
-  const fetchIpWhitelist = useCallback(async () => {
-    try {
-      setLoadingIpWhitelist(true);
-      const res = await apiGatewayApi.getAllIps();
-      if (res.success && res.data?.ips) {
-        const mapped = res.data.ips.map((ip: any) => ({
-          id: ip._id,
-          ip: ip.ip,
-          label: ip.label,
-          addedAt: new Date(ip.createdAt).toISOString().slice(0, 10),
-        }));
-        setIpWhitelist(mapped);
-      }
-    } catch (error) {
-      console.error('Failed to fetch IP whitelist:', error);
-    } finally {
-      setLoadingIpWhitelist(false);
-    }
-  }, []);
-
   const fetchDevices = useCallback(async (append = false) => {
     try {
       setLoadingDevices(true);
@@ -467,8 +448,7 @@ export function useAdminStore() {
     fetchDevices();
     fetchPricing();
     fetchApiLogs();
-    fetchIpWhitelist();
-  }, [fetchOrders, fetchDevices, fetchPricing, fetchApiLogs, fetchIpWhitelist]);
+  }, [fetchOrders, fetchDevices, fetchPricing, fetchApiLogs]);
 
   // ── Orders ────────────────────────────────────────────────────────────────
   const addOrder = useCallback(async (order: Omit<Order, 'id' | 'orderNumber' | 'createdAt' | 'updatedAt'>) => {
@@ -1017,50 +997,10 @@ export function useAdminStore() {
     reorder: (items: UtilityItem[]) => setPaymentStatuses(items),
   };
 
-  // ── IP Whitelist CRUD ─────────────────────────────────────────────────────
-  const addIpToWhitelist = useCallback(async (ip: string, label: string) => {
-    try {
-      const res = await apiGatewayApi.addIp({ ip: ip.trim(), label: label.trim() });
-      if (res.success && res.data?.ip) {
-        const entry = {
-          id: res.data.ip._id,
-          ip: res.data.ip.ip,
-          label: res.data.ip.label,
-          addedAt: new Date(res.data.ip.createdAt).toISOString().slice(0, 10),
-        };
-        setIpWhitelist(prev => [...prev, entry]);
-        return entry;
-      }
-    } catch (error) {
-      console.error('Failed to add IP to whitelist:', error);
-      throw error;
-    }
-  }, []);
-
-  const removeIpFromWhitelist = useCallback(async (id: string) => {
-    try {
-      await apiGatewayApi.removeIp(id);
-      setIpWhitelist(prev => prev.filter(e => e.id !== id));
-    } catch (error) {
-      console.error('Failed to remove IP from whitelist:', error);
-      throw error;
-    }
-  }, []);
-
-  const updateIpWhitelistEntry = useCallback(async (id: string, updates: { ip?: string; label?: string }) => {
-    try {
-      await apiGatewayApi.updateIp(id, updates);
-      setIpWhitelist(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
-    } catch (error) {
-      console.error('Failed to update IP whitelist entry:', error);
-      throw error;
-    }
-  }, []);
-
   // ── API Gateway test order ────────────────────────────────────────────────
-  const processApiOrder = useCallback(async (payload: Record<string, unknown>) => {
+  const processApiOrder = useCallback(async (payload: Record<string, unknown>, partnerKey?: string) => {
     try {
-      const res = await apiGatewayApi.testOrder(payload);
+      const res = await apiGatewayApi.testOrder(payload, partnerKey);
       
       // Refresh logs and orders after test
       await fetchApiLogs();
@@ -1087,12 +1027,71 @@ export function useAdminStore() {
     }
   }, [fetchApiLogs, fetchOrders]);
 
+  const fetchPartners = useCallback(async () => {
+    try {
+      setLoadingPartners(true);
+      const res = await partnerApi.getAll();
+      if (res.success && res.data?.partners) {
+        const mapped = res.data.partners.map((p: any): Partner => ({
+          id: p._id,
+          name: p.name,
+          keyPrefix: p.keyPrefix,
+          isActive: p.isActive,
+          totalOrders: p.totalOrders,
+          lastUsedAt: p.lastUsedAt,
+          createdAt: p.createdAt,
+        }));
+        setPartners(mapped);
+      }
+    } catch (error) {
+    } finally {
+      setLoadingPartners(false);
+    }
+  }, []);
+
+  const createPartner = useCallback(async (name: string) => {
+    const res = await partnerApi.create(name);
+    if (res.success && res.data?.partner) {
+      const p = res.data.partner;
+      setPartners(prev => [{
+        id: (p as any)._id || p.id,
+        name: p.name,
+        keyPrefix: p.keyPrefix,
+        isActive: p.isActive,
+        totalOrders: p.totalOrders ?? 0,
+        lastUsedAt: p.lastUsedAt ?? null,
+        createdAt: p.createdAt,
+      }, ...prev]);
+    }
+    return res;
+  }, []);
+
+  const regeneratePartnerKey = useCallback(async (id: string) => {
+    const res = await partnerApi.regenerateKey(id);
+    return res;
+  }, []);
+
+  const togglePartner = useCallback(async (id: string) => {
+    const res = await partnerApi.toggle(id);
+    if (res.success && res.data?.partner) {
+      const p = res.data.partner;
+      setPartners(prev => prev.map(x => x.id === id ? {
+        ...x,
+        isActive: p.isActive,
+      } : x));
+    }
+  }, []);
+
+  const deletePartner = useCallback(async (id: string) => {
+    await partnerApi.delete(id);
+    setPartners(prev => prev.filter(p => p.id !== id));
+  }, []);
+
   return {
     orders, addOrder, updateOrder, deleteOrder, updateOrderStatus, fetchOrders, loadingOrders, loadMoreOrders, ordersHasMore, ordersPage,
     devices, addDevice, updateDevice, deleteDevice, loadingDevices, fetchDevices, loadMoreDevices, devicesHasMore,
     pricingEntries, addPricingEntry, updatePricingEntry, deletePricingEntry, bulkUpdatePricing, fetchPricing, loadingPricing, loadMorePricing, pricingHasMore,
     apiLogs, processApiOrder, fetchApiLogs, loadingApiLogs,
-    ipWhitelist, addIpToWhitelist, removeIpFromWhitelist, updateIpWhitelistEntry, fetchIpWhitelist, loadingIpWhitelist,
     storageOptions, storageOptionsCRUD,
     conditions, conditionsCRUD,
     networks, networksCRUD,
@@ -1101,6 +1100,7 @@ export function useAdminStore() {
     orderStatuses, orderStatusesCRUD,
     paymentStatuses, paymentStatusesCRUD,
     loadingUtilities,
+    partners, loadingPartners, fetchPartners, createPartner, regeneratePartnerKey, togglePartner, deletePartner,
   };
 }
 

@@ -143,7 +143,6 @@ function Step1({ onSelect, initialBrand }: { onSelect: (p: SelectedPhone) => voi
           setDeviceMaxPrices(maxPrices);
         }
       } catch (err: any) {
-        console.error('Error fetching devices:', err);
         setError('Failed to load devices. Please try again.');
       } finally {
         setLoading(false);
@@ -395,7 +394,6 @@ function Step2({ phone, onSelect, onBack }: { phone: SelectedPhone; onSelect: (s
           setStorageOptions(filtered);
         }
       } catch (err) {
-        console.error('Error fetching storage options:', err);
       } finally {
         setLoading(false);
       }
@@ -513,7 +511,6 @@ function Step3Network({ phone, storage, onSelect, onBack }: {
           setNetworks(filtered);
         }
       } catch (err) {
-        console.error('Error fetching networks:', err);
       } finally {
         setLoading(false);
       }
@@ -711,7 +708,6 @@ function Step4Condition({ phone, storage, network, onSelect, onBack }: {
           setConditions(filtered);
         }
       } catch (err) {
-        console.error('Error fetching conditions:', err);
       } finally {
         setLoading(false);
       }
@@ -1108,7 +1104,6 @@ function Step5Details({ phone, storage, network, condition, onBack }: {
                   setError(response.error || 'Failed to create order. Please try again.');
                 }
               } catch (err: any) {
-                console.error('Order submission error:', err);
                 setError(err.response?.data?.error || err.message || 'Failed to submit order. Please try again.');
               } finally {
                 setLoading(false);

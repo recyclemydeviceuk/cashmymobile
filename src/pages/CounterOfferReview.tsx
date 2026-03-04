@@ -26,8 +26,6 @@ export default function CounterOfferReview() {
       setLoading(true);
       setError('');
       const response = await counterOfferApi.getCounterOfferByToken(token!);
-      console.log('Counter offer API response:', response);
-      
       // Handle both response structures
       const counterOfferData = response.data?.counterOffer || response.counterOffer;
       const orderData = response.data?.counterOffer?.orderId || response.counterOffer?.orderId;
@@ -39,7 +37,6 @@ export default function CounterOfferReview() {
         setError(response.message || 'Counter offer not found');
       }
     } catch (err: any) {
-      console.error('Error fetching counter offer:', err);
       setError(err.response?.data?.message || err.message || 'Failed to load counter offer');
     } finally {
       setLoading(false);

@@ -19,38 +19,48 @@ import AdminDeviceForm from './admin/pages/AdminDeviceForm';
 import AdminPricing from './admin/pages/AdminPricing';
 import AdminUtilities from './admin/pages/AdminUtilities';
 import AdminApiGateway from './admin/pages/AdminApiGateway';
+import AdminPartners from './admin/pages/AdminPartners';
 import CounterOfferReview from './pages/CounterOfferReview';
+
+function AdminRoutes() {
+  return (
+    <AdminProvider>
+      <Routes>
+        <Route path="login" element={<AdminLogin />} />
+        <Route path="" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
+        <Route path="orders" element={<AdminGuard><AdminOrders /></AdminGuard>} />
+        <Route path="orders/:id" element={<AdminGuard><AdminOrderDetail /></AdminGuard>} />
+        <Route path="devices" element={<AdminGuard><AdminDevices /></AdminGuard>} />
+        <Route path="devices/new" element={<AdminGuard><AdminDeviceForm /></AdminGuard>} />
+        <Route path="devices/edit/:id" element={<AdminGuard><AdminDeviceForm /></AdminGuard>} />
+        <Route path="pricing" element={<AdminGuard><AdminPricing /></AdminGuard>} />
+        <Route path="utilities" element={<AdminGuard><AdminUtilities /></AdminGuard>} />
+        <Route path="api-gateway" element={<AdminGuard><AdminApiGateway /></AdminGuard>} />
+        <Route path="partners" element={<AdminGuard><AdminPartners /></AdminGuard>} />
+      </Routes>
+    </AdminProvider>
+  );
+}
 
 function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
-      <AdminProvider>
-        <Routes>
-          {/* ── Public website ── */}
-          <Route path="/" element={<Home />} />
-          <Route path="/sell" element={<SellPhone />} />
-          <Route path="/how-it-works" element={<HowItWorks />} />
-          <Route path="/faq" element={<FAQ />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/terms" element={<TermsConditions />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/counter-offer/:token" element={<CounterOfferReview />} />
+      <Routes>
+        {/* ── Public website ── */}
+        <Route path="/" element={<Home />} />
+        <Route path="/sell" element={<SellPhone />} />
+        <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/faq" element={<FAQ />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsConditions />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/counter-offer/:token" element={<CounterOfferReview />} />
 
-          {/* ── Admin Panel ── */}
-          <Route path="/admin-cashmymobile/login" element={<AdminLogin />} />
-          <Route path="/admin-cashmymobile" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
-          <Route path="/admin-cashmymobile/orders" element={<AdminGuard><AdminOrders /></AdminGuard>} />
-          <Route path="/admin-cashmymobile/orders/:id" element={<AdminGuard><AdminOrderDetail /></AdminGuard>} />
-          <Route path="/admin-cashmymobile/devices" element={<AdminGuard><AdminDevices /></AdminGuard>} />
-          <Route path="/admin-cashmymobile/devices/new" element={<AdminGuard><AdminDeviceForm /></AdminGuard>} />
-          <Route path="/admin-cashmymobile/devices/edit/:id" element={<AdminGuard><AdminDeviceForm /></AdminGuard>} />
-          <Route path="/admin-cashmymobile/pricing" element={<AdminGuard><AdminPricing /></AdminGuard>} />
-          <Route path="/admin-cashmymobile/utilities" element={<AdminGuard><AdminUtilities /></AdminGuard>} />
-          <Route path="/admin-cashmymobile/api-gateway" element={<AdminGuard><AdminApiGateway /></AdminGuard>} />
-        </Routes>
-      </AdminProvider>
+        {/* ── Admin Panel (AdminProvider only loads here) ── */}
+        <Route path="/admin-cashmymobile/*" element={<AdminRoutes />} />
+      </Routes>
     </BrowserRouter>
   );
 }

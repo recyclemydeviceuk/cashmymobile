@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import {
   Search, Filter, Download, Eye, Trash2,
   Package, ChevronDown, X, RefreshCw, Loader2,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Building2,
 } from 'lucide-react';
 import AdminLayout from '../AdminLayout';
 import { useAdmin } from '../AdminContext';
@@ -270,6 +270,12 @@ export default function AdminOrders() {
                       <span className={`text-xs font-semibold px-2 py-1 rounded-full ${o.source === 'API' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
                         {o.source}
                       </span>
+                      {o.partnerName && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <Building2 className="w-3 h-3 text-blue-500" />
+                          <span className="text-[10px] text-blue-600 font-semibold">{o.partnerName}</span>
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge value={o.status} statuses={orderStatuses} fallbackColor="bg-gray-100 text-gray-700" />
