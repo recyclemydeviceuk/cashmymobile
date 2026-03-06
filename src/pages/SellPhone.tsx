@@ -114,6 +114,28 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
   );
 }
 
+function StepStatusState({ title, message, onRetry, onBack }: { title: string; message: string; onRetry?: () => void; onBack: () => void }) {
+  return (
+    <div className="bg-gray-50 min-h-full flex items-center justify-center py-20">
+      <div className="text-center max-w-md mx-auto px-4">
+        <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+        <p className="text-gray-800 font-bold text-lg mb-2">{title}</p>
+        <p className="text-gray-600 text-sm mb-6">{message}</p>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button onClick={onBack} className="w-full sm:w-auto bg-white border border-gray-200 text-gray-700 px-6 py-2 rounded-lg font-semibold hover:bg-gray-50 transition">
+            Go Back
+          </button>
+          {onRetry && (
+            <button onClick={onRetry} className="w-full sm:w-auto bg-red-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-red-700 transition">
+              Retry
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Step1({ onSelect, initialBrand }: { onSelect: (p: SelectedPhone) => void; initialBrand?: 'all' | 'apple' | 'samsung' }) {
   const [query, setQuery] = useState('');
   const [brand, setBrand] = useState<'all' | 'apple' | 'samsung'>(initialBrand || 'all');
@@ -353,11 +375,14 @@ function Step2({ phone, onSelect, onBack }: { phone: SelectedPhone; onSelect: (s
   const [storageOptions, setStorageOptions] = useState<StorageOption[]>([]);
   const [pricingData, setPricingData] = useState<{ [key: string]: number }>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        setError(null);
         const [storageRes, pricingRes] = await Promise.all([
           utilitiesApi.getStorageOptions(),
           pricingApi.getPricingByDevice(phone.id)
@@ -394,12 +419,13 @@ function Step2({ phone, onSelect, onBack }: { phone: SelectedPhone; onSelect: (s
           setStorageOptions(filtered);
         }
       } catch (err) {
+        setError('Failed to load storage options. Please check your internet connection and try again.');
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, [phone.id]);
+  }, [phone.id, retryKey]);
 
   if (loading) {
     return (
@@ -411,6 +437,29 @@ function Step2({ phone, onSelect, onBack }: { phone: SelectedPhone; onSelect: (s
       </div>
     );
   }
+
+  if (error) {
+    return (
+      <StepStatusState
+        title="Unable to load storage options"
+        message={error}
+        onRetry={() => setRetryKey((value) => value + 1)}
+        onBack={onBack}
+      />
+    );
+  }
+
+  if (storageOptions.length === 0) {
+    return (
+      <StepStatusState
+        title="No storage options available"
+        message="We could not find storage pricing for this device right now. Please go back and try another device."
+        onRetry={() => setRetryKey((value) => value + 1)}
+        onBack={onBack}
+      />
+    );
+  }
+
   return (
     <div className="bg-gray-50 min-h-full">
       <div className="bg-gradient-to-br from-red-600 via-red-700 to-red-800 py-8 sm:py-10 px-4">
@@ -482,11 +531,14 @@ function Step3Network({ phone, storage, onSelect, onBack }: {
   const [selected, setSelected] = useState<string | null>(null);
   const [networks, setNetworks] = useState<Network[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     const fetchNetworks = async () => {
       try {
         setLoading(true);
+        setError(null);
         const [networksRes, pricingRes] = await Promise.all([
           utilitiesApi.getNetworks(),
           pricingApi.getPricingByDevice(phone.id)
@@ -511,12 +563,13 @@ function Step3Network({ phone, storage, onSelect, onBack }: {
           setNetworks(filtered);
         }
       } catch (err) {
+        setError('Failed to load network options. Please check your internet connection and try again.');
       } finally {
         setLoading(false);
       }
     };
     fetchNetworks();
-  }, [phone.id, storage.value]);
+  }, [phone.id, storage.value, retryKey]);
 
   if (loading) {
     return (
@@ -526,6 +579,28 @@ function Step3Network({ phone, storage, onSelect, onBack }: {
           <p className="text-gray-600 font-medium">Loading network options...</p>
         </div>
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <StepStatusState
+        title="Unable to load network options"
+        message={error}
+        onRetry={() => setRetryKey((value) => value + 1)}
+        onBack={onBack}
+      />
+    );
+  }
+
+  if (networks.length === 0) {
+    return (
+      <StepStatusState
+        title="No network options available"
+        message="We could not find network pricing for this device and storage combination right now. Please go back and try another selection."
+        onRetry={() => setRetryKey((value) => value + 1)}
+        onBack={onBack}
+      />
     );
   }
 
@@ -622,11 +697,14 @@ function Step4Condition({ phone, storage, network, onSelect, onBack }: {
   const [conditions, setConditions] = useState<DeviceCondition[]>([]);
   const [pricing, setPricing] = useState<{ [key: string]: number }>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        setError(null);
         const [conditionsRes, pricingRes] = await Promise.all([
           utilitiesApi.getDeviceConditions(),
           pricingApi.getPricingByDevice(phone.id)
@@ -708,12 +786,13 @@ function Step4Condition({ phone, storage, network, onSelect, onBack }: {
           setConditions(filtered);
         }
       } catch (err) {
+        setError('Failed to load condition options. Please check your internet connection and try again.');
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, [phone.id, storage.value, network.value]);
+  }, [phone.id, storage.value, network.value, retryKey]);
 
   if (loading) {
     return (
@@ -723,6 +802,28 @@ function Step4Condition({ phone, storage, network, onSelect, onBack }: {
           <p className="text-gray-600 font-medium">Loading condition options...</p>
         </div>
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <StepStatusState
+        title="Unable to load condition options"
+        message={error}
+        onRetry={() => setRetryKey((value) => value + 1)}
+        onBack={onBack}
+      />
+    );
+  }
+
+  if (conditions.length === 0) {
+    return (
+      <StepStatusState
+        title="No condition options available"
+        message="We could not find pricing for this device combination right now. Please go back and try another selection."
+        onRetry={() => setRetryKey((value) => value + 1)}
+        onBack={onBack}
+      />
     );
   }
 

@@ -1,6 +1,30 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const resolveApiBaseUrl = () => {
+  const configuredUrl = import.meta.env.VITE_API_URL?.trim();
+
+  if (configuredUrl) {
+    return configuredUrl;
+  }
+
+  if (typeof window === 'undefined') {
+    return 'https://backend-cmm-m609.onrender.com/api';
+  }
+
+  const { protocol, hostname } = window.location;
+
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'https://backend-cmm-m609.onrender.com/api';
+  }
+
+  if (hostname === 'cashmymobile.co.uk' || hostname === 'www.cashmymobile.co.uk') {
+    return `${protocol}//api.cashmymobile.co.uk/api`;
+  }
+
+  return 'https://backend-cmm-m609.onrender.com/api';
+};
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 interface ApiResponse<T = any> {
   success: boolean;
