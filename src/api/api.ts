@@ -11,14 +11,14 @@ const resolveApiBaseUrl = () => {
     return 'https://backend-cmm-m609.onrender.com/api';
   }
 
-  const { protocol, hostname } = window.location;
+  const { hostname } = window.location;
 
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return 'https://backend-cmm-m609.onrender.com/api';
   }
 
   if (hostname === 'cashmymobile.co.uk' || hostname === 'www.cashmymobile.co.uk') {
-    return `${protocol}//api.cashmymobile.co.uk/api`;
+    return 'https://backend-cmm-m609.onrender.com/api';
   }
 
   return 'https://backend-cmm-m609.onrender.com/api';
@@ -40,9 +40,6 @@ class ApiClient {
     this.axiosInstance = axios.create({
       baseURL: API_BASE_URL,
       timeout: 30000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
     });
 
     this.setupInterceptors();
