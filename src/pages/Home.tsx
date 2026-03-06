@@ -32,6 +32,7 @@ export default function Home() {
   const [appleDevices, setAppleDevices] = useState<DeviceWithPrice[]>([]);
   const [samsungDevices, setSamsungDevices] = useState<DeviceWithPrice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState(false);
 
   useEffect(() => {
     fetchDevices();
@@ -72,6 +73,7 @@ export default function Home() {
         setSamsungDevices(sortedSamsung);
       }
     } catch (error) {
+      setApiError(true);
     } finally {
       setLoading(false);
     }
@@ -412,7 +414,17 @@ export default function Home() {
               </div>
             ) : (
               <div className="text-center py-12">
-                <p className="text-gray-500">No devices available at the moment.</p>
+                {apiError ? (
+                  <>
+                    <p className="text-gray-700 font-semibold mb-2">Could not load devices</p>
+                    <p className="text-gray-500 text-sm mb-4">There may be a connectivity issue. Please check your network and try again.</p>
+                    <button onClick={() => { setApiError(false); fetchDevices(); }} className="bg-red-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-red-700 transition text-sm">
+                      Retry
+                    </button>
+                  </>
+                ) : (
+                  <p className="text-gray-500">No devices available at the moment.</p>
+                )}
               </div>
             )}
           </div>
@@ -469,7 +481,17 @@ export default function Home() {
               </div>
             ) : (
               <div className="text-center py-12">
-                <p className="text-gray-500">No devices available at the moment.</p>
+                {apiError ? (
+                  <>
+                    <p className="text-gray-700 font-semibold mb-2">Could not load devices</p>
+                    <p className="text-gray-500 text-sm mb-4">There may be a connectivity issue. Please check your network and try again.</p>
+                    <button onClick={() => { setApiError(false); fetchDevices(); }} className="bg-red-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-red-700 transition text-sm">
+                      Retry
+                    </button>
+                  </>
+                ) : (
+                  <p className="text-gray-500">No devices available at the moment.</p>
+                )}
               </div>
             )}
           </div>
