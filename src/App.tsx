@@ -3,6 +3,7 @@ import Home from './pages/Home';
 import SellPhone from './pages/SellPhone';
 import HowItWorks from './pages/HowItWorks';
 import FAQ from './pages/FAQ';
+import { Navigate, useLocation } from 'react-router-dom';
 import ScrollToTop from './components/ScrollToTop';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsConditions from './pages/TermsConditions';
@@ -21,6 +22,12 @@ import AdminUtilities from './admin/pages/AdminUtilities';
 import AdminApiGateway from './admin/pages/AdminApiGateway';
 import AdminPartners from './admin/pages/AdminPartners';
 import CounterOfferReview from './pages/CounterOfferReview';
+
+function LegacyDevicesRedirect() {
+  const location = useLocation();
+
+  return <Navigate to={`/sell${location.search}`} replace />;
+}
 
 function AdminRoutes() {
   return (
@@ -50,6 +57,7 @@ function App() {
         {/* ── Public website ── */}
         <Route path="/" element={<Home />} />
         <Route path="/sell" element={<SellPhone />} />
+        <Route path="/devices" element={<LegacyDevicesRedirect />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
         <Route path="/faq" element={<FAQ />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -60,6 +68,7 @@ function App() {
 
         {/* ── Admin Panel (AdminProvider only loads here) ── */}
         <Route path="/admin-cashmymobile/*" element={<AdminRoutes />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
