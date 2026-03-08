@@ -18,6 +18,8 @@ RewriteRule .* - [E=verifycaptcha:off]
   RewriteEngine On
   RewriteBase /
   RewriteRule ^\.builds - [F,L]
+  RewriteRule ^assets/ - [L]
+  RewriteRule \.(js|mjs|css|map|json|png|jpg|jpeg|gif|svg|webp|ico|woff|woff2|ttf|eot)$ - [L]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule ^ index.html [L]
